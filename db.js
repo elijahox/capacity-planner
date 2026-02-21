@@ -30,4 +30,6 @@ function saveData(obj) {
   }
 }
 
-module.exports = { getData, saveData };
+function close() { db.close(); }
+
+module.exports = { getData, saveData, close };
