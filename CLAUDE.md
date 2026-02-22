@@ -35,6 +35,16 @@ capacity-planner/
 
 **Script load order** (index.html): `data.js → utils.js → persistence.js → views/*.js → app.js`
 
+### Key functions by file
+
+| File | Key functions |
+|------|--------------|
+| `utils.js` | `getSquadAllocation`, `getEffectiveSquadSize`, `utilColor/Class/Label`, `getExpiryClass/Label`, `parseCSV`, `parseCsvDate`, `parseCsvDayRate`, `parseCsvType`, `matchSquadByName` |
+| `persistence.js` | `submitAuth`, `loadAndInit`, `persistSave`, `scheduleSave`, `applyState`, `collectState` |
+| `app.js` | `renderSidebar`, `showView`, `renderContent`, `openModal`, `closeModal`, boot IIFE |
+| `views/people.js` | `renderPeople`, `openPersonModal`, `savePerson`, `openAddPersonModal`, `addPerson`, `openCsvImportModal`, `processCsvImport`, `importPeopleFromCsv` |
+| `views/demand.js` | `renderDemand`, `drawDemandChart`, `openProfileEditor`, `applyProfilePreset_v2`, `saveProfileAndClose` |
+
 ## API Routes
 
 | Method | Path | Auth | Description |
@@ -77,6 +87,13 @@ All state is saved as a single JSON blob in SQLite under key `'state'`.
 
 **Utilisation** — calculated from `getSquadAllocation()` which sums initiative allocations + scenario deltas. `getEffectiveSquadSize()` uses people register headcount (falls back to `squad.size` if empty).
 
+**CSV import (People Register)** — "↑ Import CSV" button opens a modal with a file picker and column-mapping reference. Logic in `importPeopleFromCsv(csvText)`:
+- Skips any row where `Type = Permanent` (case-insensitive); also never overwrites existing `perm` records
+- Matches existing contractors/MSPs by name (case-insensitive); updates via `Object.assign` or pushes a new record
+- Accepts date formats: `DD/MM/YYYY`, `D/M/YY`, `YYYY-MM-DD`, `DD-MMM-YY`, natural language
+- Day rate fields must be quoted in the CSV if they contain commas (e.g. `"$1,350"`) — standard Excel export behaviour
+- Returns `{ added, updated, skipped }`; `scheduleSave()` is called after import
+
 ## Auth Flow
 
 1. On load: check `sessionStorage.cp_pw` → verify with `/api/auth` → skip login screen if valid
@@ -115,5 +132,12 @@ npm test && git add . && git commit -m "message" && git push
 - Add fields to the relevant array in `data.js`
 - Update `collectState()` / `applyState()` in `persistence.js` if adding a new top-level key
 - Update modal HTML in the relevant view file
+
+**CSV import helpers** (all in `utils.js`):
+- `parseCSV(text)` — splits by newline (quoted-field-aware), returns `[{ header: value }]`
+- `parseCsvDate(str)` → `YYYY-MM-DD` or `null`
+- `parseCsvDayRate(str)` — strips `$`, commas, spaces → float or `null`
+- `parseCsvType(str)` → `'perm'` | `'contractor'` | `'msp'`
+- `matchSquadByName(name)` — exact-then-partial match against `squads` array → `squadId` or `null`
 
 **CSS** — all styles are inline in `index.html` `<style>` block. CSS variables defined in `:root`.

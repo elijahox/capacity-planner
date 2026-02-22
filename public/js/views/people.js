@@ -23,6 +23,7 @@ function renderPeople() {
           <option value="contractor">Contractors only</option>
           <option value="msp">MSP/Consultants only</option>
         </select>
+        <button class="btn btn-secondary btn-sm" onclick="openCsvImportModal()">↑ Import CSV</button>
         <button class="btn btn-primary btn-sm" onclick="openAddPersonModal(null)">+ Add Person</button>
       </div>
     </div>
@@ -259,4 +260,133 @@ function addPerson() {
   closeModal();
   renderContent();
   renderSidebar();
+}
+
+// ── CSV Import ────────────────────────────────────────────────────
+
+function openCsvImportModal() {
+  openModal(`
+    <div class="modal-header">
+      <div class="modal-title">Import CSV — People Register</div>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body" id="csv-modal-body">
+      <div style="background:#fef9e7;border:1px solid #f39c12;border-radius:8px;padding:12px 16px;margin-bottom:18px;font-size:13px;color:#7d6608">
+        <strong>⚠ Note:</strong> Contractor and MSP records will be <strong>updated or created</strong> by matching on name.
+        Permanent staff are <strong>never modified</strong> by this import.
+      </div>
+      <div class="form-group">
+        <div class="form-label">Select CSV file</div>
+        <input type="file" accept=".csv" id="csv-file-input" style="font-size:13px" />
+      </div>
+      <div style="margin-top:18px">
+        <div class="form-label" style="margin-bottom:8px">Expected CSV columns</div>
+        <table class="data-table compact" style="font-size:12px">
+          <thead><tr><th>CSV Column</th><th>Field</th></tr></thead>
+          <tbody>
+            <tr><td>Name</td><td>name — used to match existing records</td></tr>
+            <tr><td>Role</td><td>role</td></tr>
+            <tr><td>Squad</td><td>squad (matched by name, fuzzy)</td></tr>
+            <tr><td>Type</td><td>type — Contractor / Consultant (MSP)</td></tr>
+            <tr><td>Day Rate</td><td>dayRate — strips $, commas</td></tr>
+            <tr><td>Agency</td><td>agency</td></tr>
+            <tr><td>Start Date</td><td>startDate → YYYY-MM-DD</td></tr>
+            <tr><td>End Date</td><td>endDate → YYYY-MM-DD</td></tr>
+            <tr><td>Next Action</td><td>nextAction</td></tr>
+            <tr><td>Action Status</td><td>actionStatus</td></tr>
+            <tr><td>Comments</td><td>comments</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="modal-footer" id="csv-modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="processCsvImport()">Import</button>
+    </div>`);
+}
+
+function processCsvImport() {
+  const fileInput = document.getElementById('csv-file-input');
+  if (!fileInput || !fileInput.files || !fileInput.files[0]) {
+    alert('Please select a CSV file first.');
+    return;
+  }
+  const file = fileInput.files[0];
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const text = e.target.result;
+    const result = importPeopleFromCsv(text);
+
+    // Update modal body with summary
+    const body = document.getElementById('csv-modal-body');
+    if (body) {
+      body.innerHTML = `
+        <div style="text-align:center;padding:24px 0">
+          <div style="font-size:32px;margin-bottom:12px">✓</div>
+          <div style="font-size:18px;font-weight:700;margin-bottom:8px">Import complete</div>
+          <div style="font-size:14px;color:var(--text-muted)">
+            ${result.added + result.updated} records processed
+            &nbsp;·&nbsp; <strong>${result.added}</strong> added
+            &nbsp;·&nbsp; <strong>${result.updated}</strong> updated
+            &nbsp;·&nbsp; <strong>${result.skipped}</strong> skipped
+          </div>
+        </div>`;
+    }
+    // Replace footer with just Done
+    const footer = document.getElementById('csv-modal-footer');
+    if (footer) {
+      footer.innerHTML = `<button class="btn btn-primary" onclick="closeModal()">Done</button>`;
+    }
+
+    renderContent();
+    renderSidebar();
+    scheduleSave();
+  };
+  reader.readAsText(file);
+}
+
+function importPeopleFromCsv(csvText) {
+  const rows = parseCSV(csvText);
+  let added = 0, updated = 0, skipped = 0;
+
+  rows.forEach(row => {
+    // Skip blank rows
+    const name = (row['Name'] || '').trim();
+    if (!name) { skipped++; return; }
+
+    // Determine type — skip if row says perm
+    const type = parseCsvType(row['Type']);
+    if (type === 'perm') { skipped++; return; }
+
+    // Build record
+    const record = {
+      name,
+      role:         row['Role']          || '',
+      squad:        matchSquadByName(row['Squad']) || '',
+      type,
+      dayRate:      parseCsvDayRate(row['Day Rate']),
+      agency:       row['Agency']        || null,
+      startDate:    parseCsvDate(row['Start Date']),
+      endDate:      parseCsvDate(row['End Date']),
+      status:       'active',
+      nextAction:   row['Next Action']   || null,
+      actionStatus: row['Action Status'] || null,
+      comments:     row['Comments']      || '',
+    };
+
+    // Find existing non-perm record by name (case-insensitive)
+    const existing = people.find(
+      p => p.type !== 'perm' && p.name.toLowerCase() === name.toLowerCase()
+    );
+
+    if (existing) {
+      Object.assign(existing, record);
+      updated++;
+    } else {
+      people.push({ id: 'p_' + Date.now() + '_' + added, ...record });
+      added++;
+    }
+  });
+
+  return { added, updated, skipped };
 }

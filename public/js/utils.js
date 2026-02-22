@@ -118,3 +118,127 @@ function getTotalDailySpend() {
   return people.filter(p => p.type !== 'perm' && p.status === 'active' && p.dayRate)
     .reduce((a, p) => a + p.dayRate, 0);
 }
+
+// ================================================================
+// CSV IMPORT HELPERS
+// ================================================================
+
+// Parse a CSV string into an array of objects keyed by header row.
+// Handles quoted fields that may contain commas or newlines.
+function parseCSV(text) {
+  const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  const rows = [];
+  let cur = '';
+  let inQuotes = false;
+  const rawRows = [];
+  let rowStart = 0;
+
+  // Split into raw rows respecting quoted fields
+  for (let i = 0; i < lines.length; i++) {
+    const ch = lines[i];
+    if (ch === '"') {
+      inQuotes = !inQuotes;
+    } else if (ch === '\n' && !inQuotes) {
+      rawRows.push(lines.slice(rowStart, i));
+      rowStart = i + 1;
+    }
+  }
+  rawRows.push(lines.slice(rowStart)); // last row
+
+  // Parse each raw row into fields
+  function splitRow(row) {
+    const fields = [];
+    let field = '';
+    let q = false;
+    for (let i = 0; i < row.length; i++) {
+      const ch = row[i];
+      if (ch === '"') {
+        if (q && row[i + 1] === '"') { field += '"'; i++; } // escaped quote
+        else q = !q;
+      } else if (ch === ',' && !q) {
+        fields.push(field.trim());
+        field = '';
+      } else {
+        field += ch;
+      }
+    }
+    fields.push(field.trim());
+    return fields;
+  }
+
+  const nonEmpty = rawRows.filter(r => r.trim());
+  if (nonEmpty.length < 2) return [];
+
+  const headers = splitRow(nonEmpty[0]).map(h => h.trim());
+  for (let i = 1; i < nonEmpty.length; i++) {
+    const fields = splitRow(nonEmpty[i]);
+    const obj = {};
+    headers.forEach((h, idx) => { obj[h] = (fields[idx] || '').trim(); });
+    rows.push(obj);
+  }
+  return rows;
+}
+
+// Parse various date formats to YYYY-MM-DD, or null.
+function parseCsvDate(str) {
+  if (!str || !str.trim()) return null;
+  str = str.trim();
+
+  // Already YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+
+  // DD/MM/YYYY or D/M/YY
+  let m = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+  if (m) {
+    const year = m[3].length === 2 ? '20' + m[3] : m[3];
+    return `${year}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+  }
+
+  // DD-MMM-YY or DD-MMM-YYYY (e.g. 12-Mar-26, 12-Mar-2026)
+  const MONTHS = { jan:'01',feb:'02',mar:'03',apr:'04',may:'05',jun:'06',
+                   jul:'07',aug:'08',sep:'09',oct:'10',nov:'11',dec:'12' };
+  m = str.match(/^(\d{1,2})[- ]([A-Za-z]{3})[- ](\d{2,4})$/);
+  if (m) {
+    const mon = MONTHS[m[2].toLowerCase()];
+    if (mon) {
+      const year = m[3].length === 2 ? '20' + m[3] : m[3];
+      return `${year}-${mon}-${m[1].padStart(2,'0')}`;
+    }
+  }
+
+  // Month D, YYYY (e.g. March 12, 2026)
+  const d = new Date(str);
+  if (!isNaN(d.getTime())) {
+    return d.toISOString().slice(0, 10);
+  }
+
+  return null;
+}
+
+// Strip $, commas, spaces and parse as a float. Returns null if empty/NaN.
+function parseCsvDayRate(str) {
+  if (!str || !str.trim()) return null;
+  const n = parseFloat(str.replace(/[$,\s]/g, ''));
+  return isNaN(n) ? null : n;
+}
+
+// Map a CSV Type string to our internal type value.
+function parseCsvType(str) {
+  if (!str) return 'contractor';
+  const s = str.trim().toLowerCase();
+  if (s === 'permanent' || s === 'perm') return 'perm';
+  if (s === 'consultant (msp)' || s === 'msp' || s === 'consultant') return 'msp';
+  return 'contractor';
+}
+
+// Fuzzy-match a squad name string to a squadId. Returns null if no match.
+function matchSquadByName(name) {
+  if (!name || !name.trim()) return null;
+  const needle = name.trim().toLowerCase();
+  // Exact match first
+  const exact = squads.find(s => s.name.toLowerCase() === needle);
+  if (exact) return exact.id;
+  // Partial contains match
+  const partial = squads.find(s => s.name.toLowerCase().includes(needle) || needle.includes(s.name.toLowerCase()));
+  return partial ? partial.id : null;
+}
