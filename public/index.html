@@ -667,6 +667,28 @@ canvas { display: block; }
 }
 
 .divider { height: 1px; background: var(--border); margin: 20px 0; }
+
+/* ---- ORG CHART ---- */
+.orgchart-squad-name:hover {
+  text-decoration: underline;
+  text-decoration-style: dashed;
+  text-underline-offset: 3px;
+}
+.orgchart-person-card {
+  transition: all 0.12s;
+}
+.orgchart-person-card:hover {
+  border-color: var(--border-strong) !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  transform: translateY(-1px);
+  cursor: pointer;
+}
+.orgchart-person-card[draggable="true"] {
+  cursor: grab;
+}
+.orgchart-person-card[draggable="true"]:active {
+  cursor: grabbing;
+}
 </style>
 </head>
 <body>
@@ -701,6 +723,7 @@ canvas { display: block; }
     <button class="nav-btn active" onclick="showView('overview',this)">Overview</button>
     <button class="nav-btn" onclick="showView('squads',this)">Squads</button>
     <button class="nav-btn" onclick="showView('people',this)">People Register</button>
+    <button class="nav-btn" onclick="showView('orgchart',this)">Org Chart</button>
     <button class="nav-btn" onclick="showView('contractors',this)" id="contractors-nav">Contractor Watch</button>
     <button class="nav-btn" onclick="showView('initiatives',this)">Initiatives</button>
     <button class="nav-btn" onclick="showView('roadmap',this)">Roadmap</button>
@@ -730,6 +753,7 @@ canvas { display: block; }
 <script src="js/views/overview.js"></script>
 <script src="js/views/squads.js"></script>
 <script src="js/views/people.js"></script>
+<script src="js/views/orgchart.js"></script>
 <script src="js/views/contractors.js"></script>
 <script src="js/views/initiatives.js"></script>
 <script src="js/views/roadmap.js"></script>

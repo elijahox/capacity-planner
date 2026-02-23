@@ -75,6 +75,7 @@ function renderContent() {
     overview:    renderOverview,
     squads:      renderSquads,
     people:      renderPeople,
+    orgchart:    renderOrgChart,
     contractors: renderContractorWatch,
     initiatives: renderInitiatives,
     roadmap:     renderRoadmap,
