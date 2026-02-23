@@ -25,6 +25,7 @@ capacity-planner/
 │           ├── overview.js
 │           ├── squads.js
 │           ├── people.js
+│           ├── orgchart.js    # Two-tier org chart: tribes → squads → person cards, drag-and-drop
 │           ├── contractors.js
 │           ├── initiatives.js
 │           ├── roadmap.js
@@ -43,6 +44,7 @@ capacity-planner/
 | `persistence.js` | `submitAuth`, `loadAndInit`, `persistSave`, `scheduleSave`, `applyState`, `collectState` |
 | `app.js` | `renderSidebar`, `showView`, `renderContent`, `openModal`, `closeModal`, boot IIFE |
 | `views/people.js` | `renderPeople`, `openPersonModal`, `savePerson`, `openAddPersonModal`, `addPerson`, `openCsvImportModal`, `processCsvImport`, `importPeopleFromCsv` |
+| `views/orgchart.js` | `renderOrgChart`, `renderOrgTribeGroup`, `renderOrgSquadCol`, `renderOrgPersonCard`, `orgChartRenameSquad`, `orgChartNewSquad`, `orgChartConfirmNewSquad`, `orgChartDragStart/End/Over/Leave/Drop` |
 | `views/demand.js` | `renderDemand`, `drawDemandChart`, `openProfileEditor`, `applyProfilePreset_v2`, `saveProfileAndClose` |
 
 ## API Routes
@@ -80,6 +82,8 @@ All state is saved as a single JSON blob in SQLite under key `'state'`.
 **Work profiles** — each initiative has a weekly % capacity shape (bell curve by default) rather than a flat allocation. The profile drives the demand chart. Edit via the ✏ Profile button in the Demand Chart view.
 
 **Demand chart** — overlays initiative work profiles as weekly line/area curves over a Jan 2025–Dec 2026 window. Shows peak collision analysis: flags months where combined demand exceeds 100%.
+
+**Org chart** — two-tier visual: tribe header nodes (coloured by tribe) across the top, squad columns below connected by horizontal bar + vertical drops in tribe colour. Person cards are draggable (HTML5 API) between squads; drop updates `person.squad`, recalculates headcount, and auto-saves. Squad names are double-click renameable inline. New squads can be added per tribe via an inline form at the end of each tribe row. Nav position: between People Register and Contractor Watch.
 
 **Contractor watch** — groups non-perm active people by contract expiry: expired, <14d, 14–30d, 30–90d, 90+. Badge on nav button shows count expiring within 30 days.
 
