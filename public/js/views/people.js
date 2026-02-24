@@ -271,7 +271,7 @@ function openCsvImportModal() {
       <button class="modal-close" onclick="closeModal()">×</button>
     </div>
     <div class="modal-body" id="csv-modal-body">
-      <div style="background:#fef9e7;border:1px solid #f39c12;border-radius:8px;padding:12px 16px;margin-bottom:18px;font-size:13px;color:#7d6608">
+      <div style="background:#fffbeb;border:1px solid #f59e0b;border-radius:8px;padding:12px 16px;margin-bottom:18px;font-size:13px;color:#92400e">
         <strong>⚠ Note:</strong> Contractor and MSP records will be <strong>updated or created</strong> by matching on name.
         Permanent staff are <strong>never modified</strong> by this import.
       </div>

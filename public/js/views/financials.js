@@ -43,7 +43,7 @@ function renderFinancials() {
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
       <div>
-        <div class="section-title" style="font-family:'Syne',sans-serif;font-weight:700;margin-bottom:12px;font-size:16px">Spend by Tribe</div>
+        <div class="section-title" style="font-family:'Inter',sans-serif;font-weight:700;margin-bottom:12px;font-size:16px">Spend by Tribe</div>
         <div class="card">
           <table class="data-table compact">
             <thead><tr><th>Tribe</th><th>Contractors</th><th>Daily</th><th>Monthly Est.</th></tr></thead>
@@ -64,7 +64,7 @@ function renderFinancials() {
         </div>
       </div>
       <div>
-        <div class="section-title" style="font-family:'Syne',sans-serif;font-weight:700;margin-bottom:12px;font-size:16px">Spend by Role</div>
+        <div class="section-title" style="font-family:'Inter',sans-serif;font-weight:700;margin-bottom:12px;font-size:16px">Spend by Role</div>
         <div class="card">
           <table class="data-table compact">
             <thead><tr><th>Role</th><th>Count</th><th>Avg Rate</th><th>Daily Total</th></tr></thead>

@@ -26,7 +26,7 @@ function renderSquads() {
   let html = `
     <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px">
       <div>
-        <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:700;display:flex;align-items:center;gap:10px">
+        <div style="font-family:'Inter',sans-serif;font-size:22px;font-weight:700;display:flex;align-items:center;gap:10px">
           <div style="width:12px;height:12px;border-radius:50%;background:${tribe.color}"></div>${sq.name}
         </div>
         <div style="font-size:12px;color:var(--text-muted);margin-top:3px">${tribe.name} Tribe · ${hc} people · ${sqPeople.filter(p=>p.type!=='perm').length} contractors</div>

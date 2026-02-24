@@ -30,9 +30,9 @@ function renderRoadmap() {
   const todayPct = Math.max(0, Math.min(100, (todayFrac / totalMonths) * 100));
 
   const TIER_BAR_COLORS = {
-    1: { bg:'#c0392b', text:'#fff' },
-    2: { bg:'#c17f24', text:'#fff' },
-    3: { bg:'#1a5276', text:'#fff' },
+    1: { bg:'#ef4444', text:'#fff' },
+    2: { bg:'#f59e0b', text:'#fff' },
+    3: { bg:'#3b82f6', text:'#fff' },
   };
 
   // Month header

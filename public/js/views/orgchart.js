@@ -34,7 +34,7 @@ function renderOrgTribeGroup(tribe) {
         <div style="flex:1;background:${c};color:#fff;
                     border-radius:8px 8px 0 0;padding:10px 16px;
                     display:flex;align-items:center;justify-content:space-between">
-          <span style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;letter-spacing:-0.3px">${tribe.name}</span>
+          <span style="font-family:'Inter',sans-serif;font-weight:700;font-size:14px;letter-spacing:-0.3px">${tribe.name}</span>
           <span style="font-size:11px;font-family:'JetBrains Mono',monospace;opacity:0.75">${tribeSquads.length} squads · ${tribeHC}p</span>
         </div>
         <div style="width:${NEW_W}px;flex-shrink:0"></div>
@@ -93,7 +93,7 @@ function renderOrgSquadCol(sq, tribe, minW) {
                data-squad-id="${sq.id}"
                ondblclick="orgChartRenameSquad('${sq.id}',this)"
                title="Double-click to rename"
-               style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;
+               style="font-family:'Inter',sans-serif;font-weight:700;font-size:13px;
                       flex:1;cursor:default">${sq.name}</div>
           <span class="badge badge-grey">${hc}p</span>
           <span class="badge ${utilClass(util)}">${util}%</span>
@@ -150,7 +150,7 @@ function orgChartRenameSquad(squadId, el) {
   const input = document.createElement('input');
   input.className = 'form-input';
   input.value = orig;
-  input.style.cssText = 'font-size:13px;font-family:"Syne",sans-serif;font-weight:700;padding:3px 6px;width:100%';
+  input.style.cssText = 'font-size:13px;font-family:"Inter",sans-serif;font-weight:700;padding:3px 6px;width:100%';
   input.onclick = e => e.stopPropagation();
   input.onblur = () => {
     const newName = input.value.trim();

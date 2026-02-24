@@ -119,7 +119,7 @@ function renderDemand() {
           <canvas id="demandCanvas"></canvas>
           <div id="demandLegend" class="demand-legend" style="margin-top:12px"></div>
         </div>
-        <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:15px;margin-bottom:12px">Peak Collision Analysis</div>
+        <div style="font-family:'Inter',sans-serif;font-weight:700;font-size:15px;margin-bottom:12px">Peak Collision Analysis</div>
         <div class="card" id="collision-table"></div>
       </div>
 
@@ -173,7 +173,7 @@ function drawDemandChart() {
 
   // ---- Background + grid ----
   ctx.clearRect(0, 0, W, H);
-  ctx.fillStyle = '#fafaf8';
+  ctx.fillStyle = '#f8fafc';
   ctx.fillRect(PAD.left, PAD.top, chartW, chartH);
 
   // Horizontal gridlines
@@ -182,12 +182,12 @@ function drawDemandChart() {
   ctx.font = '10px JetBrains Mono, monospace';
   yTicks.forEach(v => {
     const y = PAD.top + chartH - (v / 100) * chartH;
-    ctx.strokeStyle = v === 100 ? '#c0392b55' : '#e2deda';
+    ctx.strokeStyle = v === 100 ? '#ef444455' : '#e2e8f0';
     ctx.lineWidth   = v === 100 ? 1.5 : 1;
     ctx.setLineDash(v === 100 ? [5, 4] : []);
     ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(PAD.left + chartW, y); ctx.stroke();
     ctx.setLineDash([]);
-    ctx.fillStyle = v === 100 ? '#c0392b' : '#7a776e';
+    ctx.fillStyle = v === 100 ? '#ef4444' : '#64748b';
     ctx.fillText(v + '%', PAD.left - 7, y + 3.5);
   });
 
@@ -196,8 +196,8 @@ function drawDemandChart() {
   ctx.translate(PAD.left - 42, PAD.top + chartH / 2);
   ctx.rotate(-Math.PI / 2);
   ctx.textAlign = 'center';
-  ctx.fillStyle = '#7a776e';
-  ctx.font = '10px Lato, sans-serif';
+  ctx.fillStyle = '#64748b';
+  ctx.font = '10px Inter, sans-serif';
   ctx.fillText('% Squad Capacity', 0, 0);
   ctx.restore();
 
@@ -212,20 +212,20 @@ function drawDemandChart() {
   months.forEach(m => {
     if (m.getMonth() % 3 !== 0) return;
     const x = xOf(m.getTime());
-    ctx.strokeStyle = '#d4d0ca'; ctx.lineWidth = 1; ctx.setLineDash([]);
+    ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 1; ctx.setLineDash([]);
     ctx.beginPath(); ctx.moveTo(x, PAD.top); ctx.lineTo(x, PAD.top + chartH); ctx.stroke();
     const lbl = m.toLocaleDateString('en-AU', { month: 'short' }) + (m.getMonth() === 0 ? ' ' + m.getFullYear() : '');
-    ctx.fillStyle = '#1a1916'; ctx.font = 'bold 10px JetBrains Mono, monospace';
+    ctx.fillStyle = '#0f172a'; ctx.font = 'bold 10px JetBrains Mono, monospace';
     ctx.fillText(lbl, x, PAD.top + chartH + 14);
   });
 
   // Today line
   const todayX = xOf(Date.now());
   if (todayX > PAD.left && todayX < PAD.left + chartW) {
-    ctx.strokeStyle = '#c0392b'; ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]);
+    ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]);
     ctx.beginPath(); ctx.moveTo(todayX, PAD.top - 4); ctx.lineTo(todayX, PAD.top + chartH); ctx.stroke();
     ctx.setLineDash([]);
-    ctx.fillStyle = '#c0392b'; ctx.textAlign = 'left'; ctx.font = 'bold 9px JetBrains Mono, monospace';
+    ctx.fillStyle = '#ef4444'; ctx.textAlign = 'left'; ctx.font = 'bold 9px JetBrains Mono, monospace';
     ctx.fillText('Today', todayX + 3, PAD.top + 11);
   }
 
@@ -459,7 +459,7 @@ function openProfileEditor(initId) {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       // Background
-      ctx.fillStyle = '#f7f6f2';
+      ctx.fillStyle = '#f8fafc';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       // Y axis gridlines + labels
@@ -467,12 +467,12 @@ function openProfileEditor(initId) {
       ctx.font = '10px JetBrains Mono, monospace';
       yTicks.forEach(v => {
         const y = PAD.top + chartH - (v / 100) * chartH;
-        ctx.strokeStyle = v === 100 ? '#c0392b44' : '#e0ddd7';
+        ctx.strokeStyle = v === 100 ? '#ef444444' : '#e2e8f0';
         ctx.lineWidth = v === 100 ? 1.5 : 1;
         ctx.setLineDash(v === 100 ? [4, 3] : []);
         ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(PAD.left + chartW, y); ctx.stroke();
         ctx.setLineDash([]);
-        ctx.fillStyle = v === 100 ? '#c0392b' : '#9a9690';
+        ctx.fillStyle = v === 100 ? '#ef4444' : '#94a3b8';
         ctx.textAlign = 'right';
         ctx.fillText(v + '%', PAD.left - 5, y + 3.5);
       });
@@ -489,13 +489,13 @@ function openProfileEditor(initId) {
         const y = PAD.top + chartH - barActualH;
 
         // Bar background (empty track)
-        ctx.fillStyle = '#e8e5e0';
+        ctx.fillStyle = '#e2e8f0';
         ctx.beginPath();
         roundRectPath(ctx, x, PAD.top, bw, chartH, 4);
         ctx.fill();
 
         // Filled bar
-        const barColor = pct > 90 ? '#c0392b' : pct > 70 ? '#c17f24' : col;
+        const barColor = pct > 90 ? '#ef4444' : pct > 70 ? '#f59e0b' : col;
         ctx.fillStyle = barColor + 'dd';
         if (barActualH > 0) {
           ctx.beginPath();
@@ -504,13 +504,13 @@ function openProfileEditor(initId) {
         }
 
         // % label above bar
-        ctx.fillStyle = '#5a5750';
+        ctx.fillStyle = '#64748b';
         ctx.textAlign = 'center';
         ctx.font = 'bold 9px JetBrains Mono, monospace';
         ctx.fillText(pct + '%', x + bw / 2, Math.min(y - 3, PAD.top + chartH - 4));
 
         // Week label below
-        ctx.fillStyle = '#9a9690';
+        ctx.fillStyle = '#94a3b8';
         ctx.font = '9px JetBrains Mono, monospace';
         ctx.textAlign = 'center';
         ctx.fillText(weekLabel(wi), x + bw / 2, PAD.top + chartH + 12);
@@ -518,7 +518,7 @@ function openProfileEditor(initId) {
         // Month boundary marker
         const mbl = monthBoundaryLabel(wi);
         if (mbl) {
-          ctx.strokeStyle = '#c9c5be';
+          ctx.strokeStyle = '#e2e8f0';
           ctx.lineWidth = 1;
           ctx.setLineDash([3, 2]);
           ctx.beginPath();
@@ -526,7 +526,7 @@ function openProfileEditor(initId) {
           ctx.lineTo(x - 1, PAD.top + chartH + 15);
           ctx.stroke();
           ctx.setLineDash([]);
-          ctx.fillStyle = '#1a1916';
+          ctx.fillStyle = '#0f172a';
           ctx.font = 'bold 10px JetBrains Mono, monospace';
           ctx.textAlign = 'left';
           ctx.fillText(mbl, x, PAD.top + chartH + 26);

@@ -12,7 +12,7 @@ function renderScenarios() {
     </div>
 
     <div class="scenario-panel" style="margin-bottom:20px">
-      <div style="font-family:'Syne',sans-serif;font-weight:600;margin-bottom:14px">⚡ Add Scenario Change</div>
+      <div style="font-family:'Inter',sans-serif;font-weight:600;margin-bottom:14px">⚡ Add Scenario Change</div>
       <div class="form-grid">
         <div class="form-group">
           <div class="form-label">Squad</div>
@@ -71,7 +71,7 @@ function renderScenarios() {
       </table>
     </div>` : ''}
 
-    <div class="section-title" style="font-family:'Syne',sans-serif;font-weight:700;margin-bottom:14px">Snapshot — All Squads</div>
+    <div class="section-title" style="font-family:'Inter',sans-serif;font-weight:700;margin-bottom:14px">Snapshot — All Squads</div>
     <div class="card">
       <table class="data-table">
         <thead><tr><th>Squad</th><th>Tribe</th><th>Headcount</th><th>Contractors</th><th>Utilisation</th><th>Status</th></tr></thead>
