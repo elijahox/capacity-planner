@@ -17,7 +17,7 @@ capacity-planner/
 ├── public/
 │   ├── index.html         # App shell: CSS, nav, modal overlay, auth screen, <script> tags
 │   └── js/
-│       ├── data.js        # squads, initiatives, people, initiativeDates, workProfiles, scenarios
+│       ├── data.js        # squads, initiatives, people, initiativeDates, workProfiles
 │       ├── utils.js       # Helper functions: dates, currency, badge classes, allocation calc
 │       ├── persistence.js # Auth, save/load, 30s polling, auto-save (1.2s debounce)
 │       ├── app.js         # View router, renderSidebar, openModal/closeModal, boot IIFE
@@ -28,9 +28,9 @@ capacity-planner/
 │           ├── orgchart.js    # Two-tier org chart: tribes → squads → person cards, drag-and-drop
 │           ├── contractors.js
 │           ├── initiatives.js
+│           ├── pipeline.js    # Pipeline view: status filter, table, modal, status advancement
 │           ├── roadmap.js
 │           ├── demand.js      # Includes profile editor modal + canvas drawing
-│           ├── scenarios.js
 │           └── financials.js
 ```
 
@@ -46,6 +46,8 @@ capacity-planner/
 | `views/people.js` | `renderPeople`, `openPersonModal`, `savePerson`, `openAddPersonModal`, `addPerson`, `openCsvImportModal`, `processCsvImport`, `importPeopleFromCsv` |
 | `views/orgchart.js` | `renderOrgChart`, `renderOrgTribeGroup`, `renderOrgSquadCol`, `renderOrgPersonCard`, `orgChartRenameSquad`, `orgChartNewSquad`, `orgChartConfirmNewSquad`, `orgChartDragStart/End/Over/Leave/Drop` |
 | `views/demand.js` | `renderDemand`, `drawDemandChart`, `openProfileEditor`, `applyProfilePreset_v2`, `saveProfileAndClose` |
+| `views/pipeline.js` | `renderPipeline`, `setPipelineFilter`, `openPipelineModal`, `savePipelineModal`, `advancePipelineStatus`, `fmtBudget`, `getPipelineStatusClass/Label` |
+| `views/squads.js` | `renderSquads`, `setSquadsTab`, `renderHeatMap`, `showHeatTip`, `hideHeatTip` |
 
 ## API Routes
 
@@ -65,7 +67,16 @@ All state is saved as a single JSON blob in SQLite under key `'state'`.
 { id, tribe, name, size }
 
 // initiatives
-{ id, name, tier (1/2/3), status, owner, allocations: { squadId: pct } }
+{ id, name, tier (1/2/3), status, owner,
+  allocations: { squadId: pct },          // drives utilisation calculations
+  estimatedCapacity: { squadId: pct },    // pre-approval planning only
+  budget,                                 // number (dollars) or null
+  estimatedHeadcount,                     // number or null
+  expectedStart,                          // 'YYYY-MM-DD' or null
+  expectedDuration,                       // weeks (number) or null
+  sponsor,                                // string or null
+  pipelineStatus }                        // 'submitted'|'approved'|'in_delivery'|'complete'
+// On activation (→ in_delivery), estimatedCapacity is copied into allocations
 
 // people
 { id, name, squad, role, type ('perm'|'contractor'|'msp'),
@@ -74,7 +85,6 @@ All state is saved as a single JSON blob in SQLite under key `'state'`.
 
 // initiativeDates — { initId: { start: 'YYYY-MM-DD', end: 'YYYY-MM-DD' } }
 // workProfiles    — { initId: [weeklyPct, ...] }  (index 0 = first week of initiative)
-// scenarios       — [{ id, squadId, label, delta }]  (temporary what-if changes)
 ```
 
 ## Key Concepts
@@ -87,9 +97,11 @@ All state is saved as a single JSON blob in SQLite under key `'state'`.
 
 **Contractor watch** — groups non-perm active people by contract expiry: expired, <14d, 14–30d, 30–90d, 90+. Badge on nav button shows count expiring within 30 days.
 
-**Scenarios** — temporary what-if overlays on utilisation (add/remove allocation %, hire/lose headcount). Not persisted separately — included in saved state.
+**Pipeline** — tracks initiatives through status stages: `submitted` (pending) → `approved` (committed) → `in_delivery` (active) → `complete`. Each initiative carries `estimatedCapacity` (pre-approval planning map) separate from `allocations` (what feeds utilisation). Quick-action buttons advance status; on activation, `estimatedCapacity` is copied into `allocations`.
 
-**Utilisation** — calculated from `getSquadAllocation()` which sums initiative allocations + scenario deltas. `getEffectiveSquadSize()` uses people register headcount (falls back to `squad.size` if empty).
+**Commitment Heat Map** — tab within the Squads view. Rows = squads grouped by tribe, columns = next 12 months. Committed % = sum of `allocations` from `approved`/`in_delivery` initiatives whose date range overlaps that month. Pending % = `estimatedCapacity` from `submitted` initiatives. Cells are colour-coded; dashed amber border indicates pending demand exists.
+
+**Utilisation** — calculated from `getSquadAllocation()` which sums `allocations` across all initiatives. `getEffectiveSquadSize()` uses people register headcount (falls back to `squad.size` if empty).
 
 **CSV import (People Register)** — "↑ Import CSV" button opens a modal with a file picker and column-mapping reference. Logic in `importPeopleFromCsv(csvText)`:
 - Skips any row where `Type = Permanent` (case-insensitive); also never overwrites existing `perm` records

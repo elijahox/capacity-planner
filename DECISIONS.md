@@ -33,3 +33,31 @@ file storage. Railway runs the app as a normal Node process.
 Split from single index.html into separate view files to
 prevent Claude Code from making rogue edits across unrelated
 views. Each view is now independently editable.
+
+## 2026-02-25: Removed Scenarios view
+Scenarios (temporary what-if allocation overlays) were removed
+from the app entirely — nav, file, data model, utils, persistence.
+The feature was superseded by the Pipeline view's estimated capacity
+planning workflow, which is persisted and more structured.
+
+## 2026-02-25: Pipeline status vs initiative status
+Initiatives now carry a `pipelineStatus` field (`submitted` |
+`approved` | `in_delivery` | `complete`) separate from the legacy
+`status` string. On activation (`in_delivery`), `estimatedCapacity`
+is copied into `allocations` so the capacity planning engine picks it up.
+The `estimatedCapacity` map is pre-approval planning only; `allocations`
+drives all utilisation calculations.
+
+## 2026-02-25: Heat map tooltip via _hmTips map
+The Commitment Heat Map builds a module-level `_hmTips` object
+keyed by `${squadId}_${year}_${month}` during render, rather than
+encoding tooltip HTML in data attributes. Avoids HTML-escaping issues
+and keeps large tooltip strings out of the DOM. Tooltip div is
+`position:fixed`, positioned on `clientX/clientY` via `showHeatTip(event, tipId)`.
+
+## 2026-02-25: Sentinel pattern for filter/tab state
+Filter state in views (e.g. pipeline filter, people filter) uses a
+module-level `_active` boolean sentinel: set to `true` when a filter
+button is clicked, reset to `false` at the top of the render function.
+This preserves the selected filter across re-renders while naturally
+resetting to the default when navigating away and back.

@@ -9,7 +9,7 @@
 
 ## Data Model
 - All state lives in a single object:
-  `{ squads, initiatives, people, initiativeDates, workProfiles, scenarios }`
+  `{ squads, initiatives, people, initiativeDates, workProfiles }`
 - Saved as one JSON blob in SQLite under key `'state'`
 - Never split this into multiple DB tables without a migration plan
 
@@ -38,6 +38,19 @@
 - Cards: `border-radius: 10px`, `1px solid var(--border)`, subtle `box-shadow`
 - Interactive elements always have a hover state
 - Fonts: Inter for UI, JetBrains Mono for numbers/code/dates
+
+## Filter / Tab State (Sentinel Pattern)
+- Module-level `let _xyzFilter = 'all'` + `let _xyzFilterActive = false`
+- Filter buttons call a setter that sets the value and `_active = true`, then `renderContent()`
+- At the top of the render function: `if (!_active) _filter = 'default'; _active = false;`
+- This preserves the selection across re-renders but resets on navigation away and back
+- Tab state (e.g. `_squadsTab`) does NOT need a sentinel — tabs should persist across re-renders
+
+## Heat Map Tooltips
+- Build a module-level `_hmTips = {}` map keyed by `${squadId}_${year}_${month}` during render
+- Cell elements use `onmouseenter="showHeatTip(event,'tipId')"` / `onmouseleave="hideHeatTip()"`
+- `showHeatTip` positions a `position:fixed` div using `event.clientX` / `event.clientY`
+- Never encode tooltip HTML in data attributes — too fragile with quotes and special characters
 
 ## Testing
 - Tests live in `tests/api.test.js`
