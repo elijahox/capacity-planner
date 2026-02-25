@@ -14,7 +14,6 @@ function collectState() {
     people,
     initiativeDates,
     workProfiles,
-    scenarios,
   };
 }
 
@@ -29,7 +28,6 @@ function applyState(data) {
   if (data.workProfiles) {
     Object.assign(workProfiles, data.workProfiles);
   }
-  if (data.scenarios)      scenarios      = data.scenarios;
 }
 
 function scheduleSave() {

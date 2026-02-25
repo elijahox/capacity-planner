@@ -43,12 +43,6 @@ function getSquadAllocation(squadId) {
       breakdown.push({ initiative: init, pct });
     }
   });
-  scenarios.forEach(s => {
-    if (s.squadId === squadId) {
-      total += s.delta;
-      breakdown.push({ initiative: { id: 'sc_' + s.id, name: '⚡ ' + s.label, tier: 3, status: 'Delivery' }, pct: s.delta });
-    }
-  });
   return { total, breakdown };
 }
 

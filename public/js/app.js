@@ -80,7 +80,7 @@ function renderContent() {
     initiatives: renderInitiatives,
     roadmap:     renderRoadmap,
     demand:      renderDemand,
-    scenarios:   renderScenarios,
+    pipeline:    renderPipeline,
     financials:  renderFinancials,
   };
   document.getElementById('content').innerHTML = (views[currentView] || renderOverview)();
