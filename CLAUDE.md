@@ -161,6 +161,7 @@ npm test && git add . && git commit -m "message" && git push
 - Before any large change, summarise your approach in plain English and wait for confirmation
 - Never change CSS variables or base styles unless the task explicitly asks for it
 - Always run `npm test` after making changes
+- After completing any task that introduces a new pattern, architectural decision, or convention, update DECISIONS.md with what was decided and why. Keep entries concise — 2–3 sentences maximum.
 
 ## Scoping Rules
 - UI changes → `public/js/views/[viewname].js`
