@@ -145,3 +145,36 @@ npm test && git add . && git commit -m "message" && git push
 - `matchSquadByName(name)` — exact-then-partial match against `squads` array → `squadId` or `null`
 
 **CSS** — all styles are inline in `index.html` `<style>` block. CSS variables defined in `:root`.
+
+## Conventions
+- Always use CSS variables, never hardcode colours
+- New views go in `public/js/views/` as their own file
+- Always run `npm test` before committing
+- Use the existing modal pattern from `app.js` — never create a new modal system
+- All API routes go in `server.js`
+- Database queries go in `db.js` only — never query the db directly from `server.js`
+
+## Ground Rules for Claude Code
+- Never refactor or modify code that isn't directly related to the current task
+- If you notice something that could be improved elsewhere, flag it as a comment but do not change it
+- Always work in the most specific file possible — if the change is in `demand.js`, only touch `demand.js`
+- Before any large change, summarise your approach in plain English and wait for confirmation
+- Never change CSS variables or base styles unless the task explicitly asks for it
+- Always run `npm test` after making changes
+
+## Scoping Rules
+- UI changes → `public/js/views/[viewname].js`
+- Layout/style changes → `public/index.html` CSS section
+- API changes → `server.js`
+- Database changes → `db.js`
+- Shared utilities → `public/js/utils.js`
+- Data and constants → `public/js/data.js`
+- Auth and save/load → `public/js/persistence.js`
+
+## Deployment
+- Always run `npm test` before `git push`
+- Commit messages should be: `type: description`
+  e.g. `feat: add org chart view`
+       `fix: contractor watch expiry calculation`
+       `refactor: split views into separate files`
+       `style: UI refresh slate blue palette`
