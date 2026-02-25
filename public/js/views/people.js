@@ -2,14 +2,25 @@
 // PEOPLE REGISTER VIEW
 // ================================================================
 
+let _peopleFilter = 'all';
+let _peopleFilterActive = false;
+
+function setPeopleFilter(v) {
+  _peopleFilter = v;
+  _peopleFilterActive = true;
+  renderContent();
+}
+
 function renderPeople() {
-  const filter = document.getElementById('people-type-filter')?.value || 'all';
+  if (!_peopleFilterActive) _peopleFilter = 'all';
+  _peopleFilterActive = false;
+  const filter = _peopleFilter;
 
   let filtered = people.filter(p => p.status === 'active');
-  if (filter === 'perm') filtered = filtered.filter(p => p.type === 'perm');
-  if (filter === 'contractor') filtered = filtered.filter(p => p.type === 'contractor');
-  if (filter === 'msp') filtered = filtered.filter(p => p.type === 'msp');
+  if (filter === 'perm')    filtered = filtered.filter(p => p.type === 'perm');
+  if (filter === 'nonperm') filtered = filtered.filter(p => p.type === 'contractor' || p.type === 'msp');
 
+  const btnStyle = 'border-radius:999px';
   return `
     <div class="section-header">
       <div>
@@ -17,12 +28,11 @@ function renderPeople() {
         <div class="section-sub">${people.filter(p=>p.status==='active').length} active people across all squads</div>
       </div>
       <div style="display:flex;gap:10px;align-items:center">
-        <select class="form-select" style="width:180px" id="people-type-filter" onchange="renderContent()">
-          <option value="all">All types</option>
-          <option value="perm">Permanent only</option>
-          <option value="contractor">Contractors only</option>
-          <option value="msp">MSP/Consultants only</option>
-        </select>
+        <div style="display:flex;gap:4px">
+          <button class="btn btn-sm ${filter==='all'    ? 'btn-primary' : 'btn-secondary'}" style="${btnStyle}" onclick="setPeopleFilter('all')">All</button>
+          <button class="btn btn-sm ${filter==='perm'   ? 'btn-primary' : 'btn-secondary'}" style="${btnStyle}" onclick="setPeopleFilter('perm')">Permanent</button>
+          <button class="btn btn-sm ${filter==='nonperm'? 'btn-primary' : 'btn-secondary'}" style="${btnStyle}" onclick="setPeopleFilter('nonperm')">Contractors &amp; MSP</button>
+        </div>
         <button class="btn btn-secondary btn-sm" onclick="openCsvImportModal()">↑ Import CSV</button>
         <button class="btn btn-primary btn-sm" onclick="openAddPersonModal(null)">+ Add Person</button>
       </div>

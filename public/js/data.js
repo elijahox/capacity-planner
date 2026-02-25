@@ -93,6 +93,103 @@ let people = [
   // --- APP / Find & Plan ---
   {id:'p30', name:'Nikhil Kawatra',      squad:'findplan', role:'Tech Lead',       type:'msp',        dayRate:1200,  agency:'AKQA',     startDate:'2025-11-13', endDate:'2026-03-30', status:'active', nextAction:'Extend', actionStatus:null,   comments:''},
   {id:'p31', name:'Dinesh Shafi',        squad:'fandc',    role:'Quality Engineer',type:'msp',        dayRate:1200,  agency:'AKQA',     startDate:'2025-03-04', endDate:'2026-06-30', status:'active', nextAction:'Extend', actionStatus:null,   comments:''},
+  // --- PERMANENT STAFF ---
+  // WEB / Checkout
+  {id:'p100', name:'Carina Ware',        squad:'checkout', role:'Senior Manager Product',      type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p101', name:'Demi Li',            squad:'checkout', role:'Senior Product Manager',      type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p102', name:"Melanie D'Agostino", squad:'checkout', role:'Product Design Lead',         type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p103', name:'Joey Graham',        squad:'checkout', role:'Principal Product Designer',  type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p104', name:'Georgia Bruce',      squad:'checkout', role:'Senior Product Designer',     type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p105', name:'Tracey Donald',      squad:'checkout', role:'Design Researcher',           type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p106', name:'Simon Tran',         squad:'checkout', role:'Lead Business Analyst',       type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p107', name:'Antar Kellerman',    squad:'checkout', role:'Associate BA',                type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p108', name:'Jason Stubbs',       squad:'checkout', role:'Engineering Manager',         type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p109', name:'Jay Liu',            squad:'checkout', role:'Tech Lead',                   type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p110', name:'Deepa Malhotra',     squad:'checkout', role:'Senior Manager Delivery',     type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p111', name:'Romy Igbal',         squad:'checkout', role:'Delivery Lead',               type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  // WEB / Payments
+  {id:'p112', name:'Tiana Said',         squad:'payments', role:'Product Manager',             type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p113', name:'Tanya Hopmann',      squad:'payments', role:'Business Analyst',            type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p114', name:'Idhaan Mehta',       squad:'payments', role:'Tech Lead',                   type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p115', name:'Halina Tang',        squad:'payments', role:'Tech Lead',                   type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p116', name:'Kelly Murphy',       squad:'payments', role:'Delivery Lead',               type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  // WEB / Discover & Manage
+  {id:'p117', name:'Ashok Singh',        squad:'discover', role:'Lead Engineer',               type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  // RANGE / Marketplace
+  {id:'p118', name:'Sam Wellington',     squad:'mktplace', role:'Senior Manager Product',      type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p119', name:'Harry Hause',        squad:'mktplace', role:'Product Manager',             type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p120', name:'Luke Stroud',        squad:'mktplace', role:'Product Design Lead',         type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p121', name:'Janine Liston',      squad:'mktplace', role:'Senior Product Designer',     type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p122', name:'Oscar Lee-Archer',   squad:'mktplace', role:'Product Designer',            type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p123', name:'Bec Gerrard',        squad:'mktplace', role:'Design Researcher',           type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p124', name:'Anita Da Mina',      squad:'mktplace', role:'Lead Business Analyst',       type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p125', name:'Ashnik Banga',       squad:'mktplace', role:'Engineering Manager',         type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p126', name:'Rahul Agarwal',      squad:'mktplace', role:'Tech Lead',                   type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p127', name:'Palma Guthrie',      squad:'mktplace', role:'Senior Manager Delivery',     type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p128', name:'Tim Wilkes',         squad:'mktplace', role:'Delivery Manager',            type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p129', name:'Lincoln Lo',         squad:'mktplace', role:'Lead Engineer',               type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  // RANGE / F&C
+  {id:'p130', name:'Katie Cop',          squad:'fandc',    role:'Business Analyst',            type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p131', name:'Miso Ang',           squad:'fandc',    role:'Tech Lead',                   type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  // RANGE / Pers/Loyalty
+  {id:'p132', name:'Tina Monaco',        squad:'persloy',  role:'Senior Product Manager',      type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p133', name:'Katie Shaw',         squad:'persloy',  role:'Product Manager',             type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  // RANGE / Rocket
+  {id:'p134', name:'Tony Archibald',     squad:'rocket',   role:'Senior Product Manager',      type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  // APP / PPNG (CX)
+  {id:'p135', name:'Raymond Smit',       squad:'ppngcx',   role:'Senior Manager Product',      type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p136', name:'Anna Babic',         squad:'ppngcx',   role:'Product Manager',             type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p137', name:'Philip Taylor',      squad:'ppngcx',   role:'Product Design Lead',         type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p138', name:'Billy Leung',        squad:'ppngcx',   role:'Senior Product Designer',     type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p139', name:'Gauri Tikhakar',     squad:'ppngcx',   role:'Business Analyst',            type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p140', name:'Sanaz Asani',        squad:'ppngcx',   role:'Business Analyst',            type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p141', name:'Jack Burns',         squad:'ppngcx',   role:'Engineering Manager',         type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p142', name:'Sona Lazar',         squad:'ppngcx',   role:'Tech Lead',                   type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p143', name:'Simon Rapaport',     squad:'ppngcx',   role:'Senior Manager Delivery',     type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p144', name:'Sharmila Chandra',   squad:'ppngcx',   role:'Delivery Manager',            type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p145', name:'Samira Devi',        squad:'ppngcx',   role:'Delivery Lead',               type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p146', name:'Jacob T Lewis',      squad:'ppngcx',   role:'Lead Engineer',               type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p147', name:'Eric Pham',          squad:'ppngcx',   role:'Engineer (BE)',               type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p148', name:'Camelo Fernandez',   squad:'ppngcx',   role:'Senior Engineer (BE)',        type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p149', name:'Qigang Cheng',       squad:'ppngcx',   role:'Engineer',                    type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  // APP / PPNG (Integrations)
+  {id:'p150', name:'Lucy Pedmun',        squad:'ppngint',  role:'Product Manager',             type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p151', name:'Josh Peppiari',      squad:'ppngint',  role:'Senior Product Manager',      type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p152', name:'Kamrul Islam',       squad:'ppngint',  role:'Tech Lead',                   type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p153', name:'Brian Liu',          squad:'ppngint',  role:'Acting Tech Lead',            type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p154', name:'Jeremiah Blais',     squad:'ppngint',  role:'Delivery Manager',            type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p155', name:'Scham Boliaye',      squad:'ppngint',  role:'Delivery Lead',               type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p156', name:'Rahman Mamun',       squad:'ppngint',  role:'Lead Engineer',               type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p157', name:'Raelenne Okame',     squad:'ppngint',  role:'Engineer (BE)',               type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p158', name:'Aurelie Zhang',      squad:'ppngint',  role:'Senior Engineer',             type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p159', name:'Mohammed Imran',     squad:'ppngint',  role:'Platform Engineer',           type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  // APP / PowerPass In-store
+  {id:'p160', name:'Jamie Leong',        squad:'ppinstore',role:'Senior Product Manager',      type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  // APP / PowerPass eComm
+  {id:'p161', name:'Jark Mawhoompharn', squad:'ppecom',   role:'Product Manager',             type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p162', name:'Katrina Nikiitna',   squad:'ppecom',   role:'Principal Product Designer',  type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p163', name:'Edward Jonas',       squad:'ppecom',   role:'Tech Lead',                   type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p164', name:'Gnady Aditya',       squad:'ppecom',   role:'Senior Engineer (BE)',        type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p165', name:'Lahul Kanakandy',    squad:'ppecom',   role:'Senior Engineer',             type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  // APP / Find & Plan
+  {id:'p166', name:'Alyia Molan',        squad:'findplan', role:'Business Analyst',            type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p167', name:'Dylie Jamieson',     squad:'findplan', role:'Business Analyst',            type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p168', name:'Jeremy Hughes',      squad:'findplan', role:'Lead Design Researcher',      type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p169', name:'Kristy Ferguson',    squad:'findplan', role:'Lead Business Analyst',       type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  // CUST PLATFORM / Salesforce CRM
+  {id:'p170', name:'Joseph Cavallaro',   squad:'sfcrm',    role:'Delivery Lead',               type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p171', name:'Azi Fakhfoori',      squad:'sfcrm',    role:'Tech Lead',                   type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p172', name:'Rui Wang',           squad:'sfcrm',    role:'Principal Engineer',          type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p173', name:'Sandra Appadoo',     squad:'sfcrm',    role:'Senior Business Analyst',     type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p174', name:'Andrew Yeo',         squad:'sfcrm',    role:'Lead Engineer',               type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p175', name:'Altus Baard',        squad:'sfcrm',    role:'Senior Engineer (.NET)',      type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p176', name:'Jasper Galapon',     squad:'sfcrm',    role:'Engineer (SF)',               type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p177', name:'Deepika Pentareddy', squad:'sfcrm',    role:'Engineer (SF)',               type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p178', name:'Amelia Ug',          squad:'sfcrm',    role:'Engineer (SF)',               type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p179', name:'Asim Hussein',       squad:'sfcrm',    role:'Snr QE/Automation',          type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  // CUST PLATFORM / PPNG
+  {id:'p180', name:'James Johnson',      squad:'ppng_cp',  role:'Head of Customer Platforms',  type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
+  {id:'p181', name:'Mai Ali',            squad:'ppng_cp',  role:'Senior Platform Engineer',    type:'perm', dayRate:null, agency:null, startDate:null, endDate:null, status:'active', nextAction:null, actionStatus:null, comments:''},
 ];
 
 // Scenario overlays
