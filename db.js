@@ -1,28 +1,37 @@
-const Database = require('better-sqlite3');
-const path = require('path');
+const { Pool } = require('pg');
 
-const dbPath = process.env.DB_PATH || path.join(__dirname, 'data.db');
-const db = new Database(dbPath);
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
+});
 
-db.exec(`CREATE TABLE IF NOT EXISTS store (key TEXT PRIMARY KEY, value TEXT)`);
+async function initDB() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS store (
+      key   TEXT PRIMARY KEY,
+      value TEXT
+    )
+  `);
+}
 
-const stmtGet = db.prepare(`SELECT value FROM store WHERE key = 'state'`);
-const stmtSet = db.prepare(`INSERT OR REPLACE INTO store (key, value) VALUES ('state', ?)`);
-
-function getData() {
-  const row = stmtGet.get();
-  if (!row) return null;
+async function getData() {
+  const res = await pool.query(`SELECT value FROM store WHERE key = 'state'`);
+  if (!res.rows.length) return null;
   try {
-    return JSON.parse(row.value);
+    return JSON.parse(res.rows[0].value);
   } catch (e) {
     console.error('Failed to parse stored state:', e.message);
     return null;
   }
 }
 
-function saveData(obj) {
+async function saveData(obj) {
   try {
-    stmtSet.run(JSON.stringify(obj));
+    await pool.query(
+      `INSERT INTO store (key, value) VALUES ('state', $1)
+       ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`,
+      [JSON.stringify(obj)]
+    );
     return true;
   } catch (e) {
     console.error('Failed to save state:', e.message);
@@ -30,6 +39,13 @@ function saveData(obj) {
   }
 }
 
-function close() { db.close(); }
+// Used by tests to reset state between runs
+async function deleteState() {
+  await pool.query(`DELETE FROM store WHERE key = 'state'`);
+}
 
-module.exports = { getData, saveData, close };
+async function close() {
+  await pool.end();
+}
+
+module.exports = { initDB, getData, saveData, deleteState, close };

@@ -3,18 +3,18 @@
 const { describe, test, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const http = require('node:http');
-const path = require('node:path');
-const fs = require('node:fs');
 
 // ── Test environment ─────────────────────────────────────────────
-// Use a unique timestamped DB so each test run starts completely fresh.
+// Use TEST_DATABASE_URL if set, otherwise fall back to DATABASE_URL.
 // MUST be set before requiring any project module (db.js reads it at load time).
-const TEST_DB = path.join(__dirname, `test-${Date.now()}.db`);
-process.env.DB_PATH = TEST_DB;
+try { require('dotenv').config(); } catch (e) { /* dotenv optional */ }
+if (process.env.TEST_DATABASE_URL) {
+  process.env.DATABASE_URL = process.env.TEST_DATABASE_URL;
+}
 process.env.PLANNER_PASSWORD = 'testpass';
 
 const app = require('../server.js');
-const { close: closeDb } = require('../db.js');
+const { initDB, deleteState, close: closeDb } = require('../db.js');
 
 const PORT = 3099;
 const PASSWORD = 'testpass';
@@ -49,15 +49,16 @@ function request(method, urlPath, body) {
 // ── Lifecycle ────────────────────────────────────────────────────
 let server;
 
-before(() => new Promise((resolve) => { server = app.listen(PORT, resolve); }));
+before(async () => {
+  await initDB();
+  await deleteState(); // ensure each test run starts with no saved state
+  await new Promise((resolve) => { server = app.listen(PORT, resolve); });
+});
 
-after(() => new Promise((resolve) => {
-  server.close(() => {
-    closeDb();
-    if (fs.existsSync(TEST_DB)) fs.unlinkSync(TEST_DB);
-    resolve();
-  });
-}));
+after(async () => {
+  await new Promise((resolve) => { server.close(resolve); });
+  await closeDb();
+});
 
 // ── Tests ────────────────────────────────────────────────────────
 

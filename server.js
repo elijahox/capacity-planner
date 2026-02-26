@@ -2,7 +2,7 @@ try { require('dotenv').config(); } catch (e) { /* dotenv not installed — Rail
 
 const express = require('express');
 const path = require('path');
-const { getData, saveData } = require('./db');
+const { initDB, getData, saveData } = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -27,19 +27,29 @@ app.post('/api/auth', (req, res) => {
 });
 
 // ── Load data ────────────────────────────────────────────────────
-app.get('/api/data', (req, res) => {
-  const data = getData(); // null if no saved state yet
-  res.json({ ok: true, data });
+app.get('/api/data', async (req, res) => {
+  try {
+    const data = await getData();
+    res.json({ ok: true, data });
+  } catch (e) {
+    console.error('GET /api/data error:', e);
+    res.status(500).json({ ok: false, error: 'Internal error' });
+  }
 });
 
 // ── Save data ────────────────────────────────────────────────────
-app.post('/api/data', (req, res) => {
+app.post('/api/data', async (req, res) => {
   const { password, data } = req.body || {};
   if (password !== PASSWORD) {
     return res.status(401).json({ ok: false, error: 'Unauthorised' });
   }
-  const ok = saveData(data);
-  res.json({ ok });
+  try {
+    const ok = await saveData(data);
+    res.json({ ok });
+  } catch (e) {
+    console.error('POST /api/data error:', e);
+    res.status(500).json({ ok: false, error: 'Internal error' });
+  }
 });
 
 // ── Catch-all: serve index.html ──────────────────────────────────
@@ -48,9 +58,13 @@ app.get('*', (req, res) => {
 });
 
 if (require.main === module) {
-  app.listen(PORT, () => {
-    console.log(`Capacity Planner running on port ${PORT}`);
-  });
+  async function start() {
+    await initDB();
+    app.listen(PORT, () => {
+      console.log(`Capacity Planner running on port ${PORT}`);
+    });
+  }
+  start();
 }
 
 module.exports = app;

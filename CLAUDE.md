@@ -124,17 +124,25 @@ All state is saved as a single JSON blob in SQLite under key `'state'`.
 node server.js          # http://localhost:3000, password: ecomm2026
 
 # Run tests
-npm test                # node --test tests/api.test.js (8 tests, no extra deps)
+npm test                # node --test tests/api.test.js (8 tests)
 
 # Deploy
 npm test && git add . && git commit -m "message" && git push
 # Railway auto-deploys on push to main (elijahox/capacity-planner)
 ```
 
+**Local dev requires `DATABASE_URL` in `.env`**:
+- Copy the Postgres connection string from the Railway dashboard (project → Postgres service → Variables → `DATABASE_URL`)
+- Paste it into `.env`: `DATABASE_URL=postgresql://...`
+- `.env` is gitignored and never committed
+- Alternatively, install Postgres locally and point `DATABASE_URL` at it
+- Tests load `.env` automatically via `dotenv` (now a real dependency, always installed)
+- Use `TEST_DATABASE_URL` env var to point tests at a separate database if needed
+
 **Environment variables** (set in Railway):
 - `PLANNER_PASSWORD` — team password
 - `PORT` — set automatically by Railway
-- `DB_PATH` — optional, defaults to `./data.db`
+- `DATABASE_URL` — set automatically by Railway Postgres plugin
 
 ## Common Patterns
 
