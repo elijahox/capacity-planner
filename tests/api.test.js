@@ -63,10 +63,10 @@ after(async () => {
 // ── Tests ────────────────────────────────────────────────────────
 
 describe('GET /api/health', () => {
-  test('returns 200 + { ok: true }', async () => {
+  test('returns 200 + { ok: true, db: connected }', async () => {
     const res = await request('GET', '/api/health');
     assert.equal(res.status, 200);
-    assert.deepEqual(res.body, { ok: true });
+    assert.deepEqual(res.body, { ok: true, db: 'connected' });
   });
 });
 

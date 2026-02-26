@@ -1,25 +1,57 @@
-try { require('dotenv').config(); } catch (e) { /* dotenv not installed — Railway injects env vars directly */ }
+try { require('dotenv').config(); } catch (e) { /* Railway injects env vars directly */ }
 
-const express = require('express');
-const path = require('path');
-const { initDB, getData, saveData } = require('./db');
+const crypto    = require('crypto');
+const express   = require('express');
+const path      = require('path');
+const helmet    = require('helmet');
+const { rateLimit } = require('express-rate-limit');
+const { initDB, checkHealth, getData, saveData } = require('./db');
 
-const app = express();
-const PORT = process.env.PORT || 3000;
+const app      = express();
+const PORT     = process.env.PORT || 3000;
 const PASSWORD = process.env.PLANNER_PASSWORD || 'ecomm2026';
+
+// ── Security headers ──────────────────────────────────────────────
+// CSP disabled: index.html uses inline <script> and <style> blocks.
+// COEP disabled: app loads cross-origin resources (Google Fonts etc).
+app.use(helmet({
+  contentSecurityPolicy:    false,
+  crossOriginEmbedderPolicy: false,
+}));
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
+// ── Rate limiting: brute-force protection on /api/auth ────────────
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { ok: false, error: 'Too many login attempts — try again in 15 minutes' },
+});
+
+// ── Timing-safe password comparison ──────────────────────────────
+// HMAC normalises both inputs to the same fixed-length digest so that
+// crypto.timingSafeEqual can compare them without leaking length info.
+function checkPassword(provided, expected) {
+  if (typeof provided !== 'string') return false;
+  const a = crypto.createHmac('sha256', 'cp_pw_check').update(provided).digest();
+  const b = crypto.createHmac('sha256', 'cp_pw_check').update(expected).digest();
+  return crypto.timingSafeEqual(a, b);
+}
+
 // ── Health check ─────────────────────────────────────────────────
-app.get('/api/health', (req, res) => {
-  res.json({ ok: true });
+app.get('/api/health', async (req, res) => {
+  const health = await checkHealth();
+  const status = health.ok ? 200 : 503;
+  res.status(status).json(health);
 });
 
 // ── Auth ─────────────────────────────────────────────────────────
-app.post('/api/auth', (req, res) => {
+app.post('/api/auth', authLimiter, (req, res) => {
   const { password } = req.body || {};
-  if (password === PASSWORD) {
+  if (checkPassword(password, PASSWORD)) {
     res.json({ ok: true });
   } else {
     res.status(401).json({ ok: false, error: 'Incorrect password' });
@@ -32,7 +64,7 @@ app.get('/api/data', async (req, res) => {
     const data = await getData();
     res.json({ ok: true, data });
   } catch (e) {
-    console.error('GET /api/data error:', e);
+    console.error('GET /api/data error:', e.message);
     res.status(500).json({ ok: false, error: 'Internal error' });
   }
 });
@@ -40,14 +72,18 @@ app.get('/api/data', async (req, res) => {
 // ── Save data ────────────────────────────────────────────────────
 app.post('/api/data', async (req, res) => {
   const { password, data } = req.body || {};
-  if (password !== PASSWORD) {
+  if (!checkPassword(password, PASSWORD)) {
     return res.status(401).json({ ok: false, error: 'Unauthorised' });
+  }
+  // Validate that data is a plain object — reject null, strings, arrays etc.
+  if (data === undefined || data === null || typeof data !== 'object' || Array.isArray(data)) {
+    return res.status(400).json({ ok: false, error: 'data must be a plain object' });
   }
   try {
     const ok = await saveData(data);
     res.json({ ok });
   } catch (e) {
-    console.error('POST /api/data error:', e);
+    console.error('POST /api/data error:', e.message);
     res.status(500).json({ ok: false, error: 'Internal error' });
   }
 });
@@ -57,9 +93,25 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// ── JSON parse error handler ─────────────────────────────────────
+// Must come after all routes; 4-parameter signature is how Express
+// identifies error-handling middleware.
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  if (err.type === 'entity.parse.failed') {
+    return res.status(400).json({ ok: false, error: 'Invalid JSON' });
+  }
+  next(err);
+});
+
 if (require.main === module) {
   async function start() {
-    await initDB();
+    try {
+      await initDB();
+    } catch (e) {
+      console.error('Fatal: could not connect to database:', e.message);
+      process.exit(1);
+    }
     app.listen(PORT, () => {
       console.log(`Capacity Planner running on port ${PORT}`);
     });

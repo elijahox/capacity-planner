@@ -5,13 +5,45 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false },
 });
 
+const MAX_RETRIES = 3;
+const RETRY_DELAY_MS = 2000;
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function initDB() {
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS store (
-      key   TEXT PRIMARY KEY,
-      value TEXT
-    )
-  `);
+  let lastError;
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS store (
+          key   TEXT PRIMARY KEY,
+          value TEXT
+        )
+      `);
+      console.log(`DB connected successfully (attempt ${attempt}/${MAX_RETRIES})`);
+      return;
+    } catch (e) {
+      lastError = e;
+      console.error(`DB connection attempt ${attempt}/${MAX_RETRIES} failed: ${e.message}`);
+      if (attempt < MAX_RETRIES) {
+        console.log(`Retrying in ${RETRY_DELAY_MS / 1000}s...`);
+        await sleep(RETRY_DELAY_MS);
+      }
+    }
+  }
+  console.error('All DB connection attempts failed. Exiting.');
+  throw lastError;
+}
+
+async function checkHealth() {
+  try {
+    await pool.query('SELECT 1');
+    return { ok: true, db: 'connected' };
+  } catch (e) {
+    return { ok: false, db: 'disconnected', error: e.message };
+  }
 }
 
 async function getData() {
@@ -48,4 +80,4 @@ async function close() {
   await pool.end();
 }
 
-module.exports = { initDB, getData, saveData, deleteState, close };
+module.exports = { initDB, checkHealth, getData, saveData, deleteState, close };
