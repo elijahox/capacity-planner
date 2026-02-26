@@ -485,8 +485,14 @@ function orgChartLeaderDrop(event, tribeId, slotIdx) {
   );
 
   tribeLeadership[tribeId][slotIdx] = personId;
+
+  // Remove person from their squad column — leadership is the exclusive view
+  const p = people.find(x => x.id === personId);
+  if (p) p.squad = null;
+
   scheduleSave();
   renderContent();
+  renderSidebar();
 }
 
 // ── Helpers ───────────────────────────────────────────────────

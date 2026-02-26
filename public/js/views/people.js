@@ -62,6 +62,19 @@ function renderPeople() {
     </div>`;
 }
 
+// ── Leadership cleanup helper ─────────────────────────────────
+// Removes a person from all tribe leadership slots. Called on
+// delete and when a squad change is saved from the People Register.
+function removePersonFromLeadership(personId) {
+  Object.keys(tribeLeadership).forEach(tribeId => {
+    if (Array.isArray(tribeLeadership[tribeId])) {
+      tribeLeadership[tribeId] = tribeLeadership[tribeId].map(
+        id => (id === personId ? null : id)
+      );
+    }
+  });
+}
+
 // --- Person detail/edit modal ---
 function openPersonModal(id) {
   const p = people.find(x=>x.id===id);
@@ -98,6 +111,7 @@ function openPersonModal(id) {
         <div class="form-group">
           <div class="form-label">Squad</div>
           <select class="form-select" id="pm-squad">
+            <option value="" ${!p.squad?'selected':''}>— Unassigned —</option>
             ${squads.map(s=>`<option value="${s.id}" ${s.id===p.squad?'selected':''}>${s.name}</option>`).join('')}
           </select>
         </div>
@@ -159,10 +173,15 @@ function openPersonModal(id) {
 function savePerson(id) {
   const p = people.find(x=>x.id===id);
   if (!p) return;
+  const newSquad = document.getElementById('pm-squad').value || null;
+  // Squad edit takes precedence: if squad changes, remove from any leadership slot
+  if (newSquad !== p.squad) {
+    removePersonFromLeadership(id);
+  }
   p.name = document.getElementById('pm-name').value;
   p.role = document.getElementById('pm-role').value;
   p.type = document.getElementById('pm-type').value;
-  p.squad = document.getElementById('pm-squad').value;
+  p.squad = newSquad;
   p.dayRate = parseFloat(document.getElementById('pm-rate').value) || null;
   p.agency = document.getElementById('pm-agency').value || null;
   p.startDate = document.getElementById('pm-start').value || null;
@@ -172,14 +191,17 @@ function savePerson(id) {
   p.actionStatus = document.getElementById('pm-actstatus').value || null;
   p.comments = document.getElementById('pm-comments').value;
   closeModal();
+  scheduleSave();
   renderContent();
   renderSidebar();
 }
 
 function deletePerson(id) {
   if (!confirm('Remove this person from the register? This will affect squad capacity calculations.')) return;
+  removePersonFromLeadership(id);
   people = people.filter(p => p.id !== id);
   closeModal();
+  scheduleSave();
   renderContent();
   renderSidebar();
 }
