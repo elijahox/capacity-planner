@@ -50,8 +50,12 @@ async function checkHealth() {
 
 async function seedIfEmpty() {
   const existing = await getData();
-  if (!existing) {
-    console.log('Database empty — seeding default data...');
+  const hasValidData = existing &&
+    existing.squads &&
+    existing.squads.length > 0;
+
+  if (!hasValidData) {
+    console.log('Database empty or invalid — seeding...');
     await saveData(defaultState);
     console.log('Seed complete.');
   }
