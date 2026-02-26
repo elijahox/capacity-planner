@@ -5,6 +5,8 @@
 // ── Drag state ────────────────────────────────────────────────
 let _orgDragPersonId = null;
 let _orgDragSourceSlot = null; // { tribeId, slotIdx } when dragging from a leadership slot
+let _orgDropTargetId = null;   // personId of card currently hovered during drag
+let _orgDropPosition = null;   // 'before' | 'after' relative to target card
 
 // ── Drag-to-scroll state ──────────────────────────────────────
 let _orgScrollRAF = null;
@@ -215,8 +217,16 @@ function orgChartClearLeaderSlot(event, tribeId, slotIdx) {
 function renderOrgSquadCol(sq, tribe, minW) {
   const hc = getEffectiveSquadSize(sq.id);
   const { total: util } = getSquadAllocation(sq.id);
-  const activePeople = people.filter(p => p.squad === sq.id && p.status === 'active');
   const c = tribe.color;
+
+  // Sort active members by squadOrder; unlisted members go to end
+  let activePeople = people.filter(p => p.squad === sq.id && p.status === 'active');
+  const order = squadOrder[sq.id] || [];
+  activePeople = activePeople.slice().sort((a, b) => {
+    const ai = order.indexOf(a.id);
+    const bi = order.indexOf(b.id);
+    return (ai === -1 ? Infinity : ai) - (bi === -1 ? Infinity : bi);
+  });
 
   return `
     <div class="orgchart-squad-col"
@@ -278,6 +288,9 @@ function renderOrgPersonCard(p) {
          data-person-id="${p.id}"
          ondragstart="orgChartDragStart(event,'${p.id}',null,null)"
          ondragend="orgChartDragEnd(event)"
+         ondragover="orgChartCardDragOver(event,'${p.id}','${p.squad}')"
+         ondragleave="orgChartCardDragLeave(event)"
+         ondrop="orgChartCardDrop(event,'${p.id}','${p.squad}')"
          onclick="openPersonModal('${p.id}')"
          style="background:var(--bg);border:1px solid var(--border);
                 border-radius:7px;padding:9px 11px;user-select:none;position:relative">
@@ -416,7 +429,7 @@ function orgChartDragStart(event, personId, fromTribeId, fromSlotIdx) {
   event.dataTransfer.setData('text/plain', personId);
   setTimeout(() => {
     document.querySelectorAll(`.orgchart-person-card[data-person-id="${personId}"]`)
-      .forEach(el => { el.style.opacity = '0.45'; });
+      .forEach(el => { el.style.opacity = '0.5'; el.style.transform = 'scale(0.95)'; });
   }, 0);
 
   // Start drag-to-scroll
@@ -427,9 +440,13 @@ function orgChartDragStart(event, personId, fromTribeId, fromSlotIdx) {
 function orgChartDragEnd(event) {
   document.querySelectorAll('.orgchart-person-card').forEach(el => {
     el.style.opacity = '';
+    el.style.transform = '';
   });
   _orgDragPersonId = null;
   _orgDragSourceSlot = null;
+  _orgDropTargetId = null;
+  _orgDropPosition = null;
+  _orgClearDropIndicators();
   document.querySelectorAll('.orgchart-squad-col').forEach(el => {
     el.style.outline = '';
     el.style.background = '';
@@ -437,6 +454,7 @@ function orgChartDragEnd(event) {
   document.querySelectorAll('[data-lead-slot]').forEach(el => {
     el.style.background = '';
     el.style.borderColor = '';
+    el.style.outline = '';
   });
 
   // Stop drag-to-scroll
@@ -465,6 +483,7 @@ function orgChartDrop(event, squadId) {
   const col = event.currentTarget;
   col.style.outline = '';
   col.style.background = '';
+  _orgClearDropIndicators();
 
   const personId = event.dataTransfer.getData('text/plain') || _orgDragPersonId;
   if (!personId) return;
@@ -478,13 +497,110 @@ function orgChartDrop(event, squadId) {
     if (tribeLeadership[tribeId]) tribeLeadership[tribeId][slotIdx] = null;
   }
 
-  if (p.squad !== squadId) {
+  const sourceSquadId = p.squad;
+  if (sourceSquadId !== squadId) {
+    _orgRemoveFromOrder(sourceSquadId, personId);
+    _orgGetOrInitOrder(squadId);
+    if (!squadOrder[squadId].includes(personId)) {
+      squadOrder[squadId].push(personId); // append to end
+    }
     p.squad = squadId;
   }
 
   scheduleSave();
   renderContent();
   renderSidebar();
+}
+
+// ── Card-level drag handlers (reordering) ─────────────────────
+function orgChartCardDragOver(event, targetPersonId, squadId) {
+  event.preventDefault();
+  event.stopPropagation(); // prevent squad column highlight from firing
+  event.dataTransfer.dropEffect = 'move';
+
+  if (_orgDragPersonId === targetPersonId) return; // hovering self
+
+  const rect = event.currentTarget.getBoundingClientRect();
+  const position = event.clientY < rect.top + rect.height / 2 ? 'before' : 'after';
+
+  if (_orgDropTargetId !== targetPersonId || _orgDropPosition !== position) {
+    _orgClearDropIndicators();
+    _orgDropTargetId = targetPersonId;
+    _orgDropPosition = position;
+    event.currentTarget.classList.add(position === 'before' ? 'org-drop-before' : 'org-drop-after');
+  }
+}
+
+function orgChartCardDragLeave(event) {
+  if (!event.currentTarget.contains(event.relatedTarget)) {
+    event.currentTarget.classList.remove('org-drop-before', 'org-drop-after');
+    _orgDropTargetId = null;
+    _orgDropPosition = null;
+  }
+}
+
+function orgChartCardDrop(event, targetPersonId, targetSquadId) {
+  event.preventDefault();
+  event.stopPropagation(); // prevent squad column drop from also firing
+  _orgClearDropIndicators();
+
+  const draggedId = event.dataTransfer.getData('text/plain') || _orgDragPersonId;
+  if (!draggedId || draggedId === targetPersonId) return;
+
+  const p = people.find(x => x.id === draggedId);
+  if (!p) return;
+
+  // If dragged from a leadership slot, clear that slot
+  if (_orgDragSourceSlot) {
+    const { tribeId, slotIdx } = _orgDragSourceSlot;
+    if (tribeLeadership[tribeId]) tribeLeadership[tribeId][slotIdx] = null;
+  }
+
+  const sourceSquadId = p.squad;
+  const pos = _orgDropPosition || 'after';
+
+  _orgRemoveFromOrder(sourceSquadId, draggedId);
+  _orgInsertIntoOrder(targetSquadId, draggedId, targetPersonId, pos);
+  p.squad = targetSquadId;
+
+  scheduleSave();
+  renderContent();
+  renderSidebar();
+}
+
+// ── Squad order helpers ────────────────────────────────────────
+function _orgGetOrInitOrder(squadId) {
+  if (!squadOrder[squadId]) {
+    squadOrder[squadId] = people
+      .filter(p => p.squad === squadId && p.status === 'active')
+      .map(p => p.id);
+  }
+  return squadOrder[squadId];
+}
+
+function _orgRemoveFromOrder(squadId, personId) {
+  if (!squadId || !squadOrder[squadId]) return;
+  squadOrder[squadId] = squadOrder[squadId].filter(id => id !== personId);
+}
+
+function _orgInsertIntoOrder(squadId, personId, targetId, position) {
+  _orgGetOrInitOrder(squadId);
+  // Ensure person not already in list
+  squadOrder[squadId] = squadOrder[squadId].filter(id => id !== personId);
+  const targetIdx = squadOrder[squadId].indexOf(targetId);
+  if (targetIdx === -1) {
+    squadOrder[squadId].push(personId); // fallback: append
+  } else if (position === 'before') {
+    squadOrder[squadId].splice(targetIdx, 0, personId);
+  } else {
+    squadOrder[squadId].splice(targetIdx + 1, 0, personId);
+  }
+}
+
+function _orgClearDropIndicators() {
+  document.querySelectorAll('.org-drop-before, .org-drop-after').forEach(el => {
+    el.classList.remove('org-drop-before', 'org-drop-after');
+  });
 }
 
 // ── Drag and Drop (leadership slots) ─────────────────────────
@@ -538,7 +654,10 @@ function orgChartLeaderDrop(event, tribeId, slotIdx) {
 
   // Remove person from their squad column — leadership is the exclusive view
   const p = people.find(x => x.id === personId);
-  if (p) p.squad = null;
+  if (p) {
+    _orgRemoveFromOrder(p.squad, personId);
+    p.squad = null;
+  }
 
   scheduleSave();
   renderContent();

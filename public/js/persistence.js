@@ -15,6 +15,7 @@ function collectState() {
     initiativeDates,
     workProfiles,
     tribeLeadership,
+    squadOrder,
   };
 }
 
@@ -31,6 +32,9 @@ function applyState(data) {
   }
   if (data.tribeLeadership) {
     Object.assign(tribeLeadership, data.tribeLeadership);
+  }
+  if (data.squadOrder) {
+    Object.assign(squadOrder, data.squadOrder);
   }
 }
 

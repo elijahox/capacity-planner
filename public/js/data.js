@@ -223,3 +223,7 @@ const workProfiles = {};
 // Tribe leadership designations — additional role, does not affect squad membership
 // tribeLeadership[tribeId] = [personId|null, personId|null, personId|null, personId|null]
 let tribeLeadership = {};
+
+// Explicit display order of person cards within each squad column
+// squadOrder[squadId] = [personId, ...] — people not listed appear at end
+let squadOrder = {};
