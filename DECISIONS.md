@@ -61,3 +61,17 @@ module-level `_active` boolean sentinel: set to `true` when a filter
 button is clicked, reset to `false` at the top of the render function.
 This preserves the selected filter across re-renders while naturally
 resetting to the default when navigating away and back.
+
+## 2026-02-27: Database seeding on empty startup
+`seed.js` exports the baseline state (squads, initiatives, people,
+initiativeDates). `db.js` calls `seedIfEmpty()` after table creation —
+if no state row exists, it writes the default. Fresh databases self-seed
+on first boot; existing databases are untouched.
+
+## 2026-02-27: Database backup strategy
+Railway Postgres paid plan includes automatic daily backups with 7-day
+retention, managed entirely by Railway (no code changes needed). To
+restore: Railway dashboard → Postgres service → Backups tab → select
+restore point. `seed.js` provides baseline recovery for fresh database
+instances. For complete data safety: manually export state via the app
+before any major infrastructure changes.

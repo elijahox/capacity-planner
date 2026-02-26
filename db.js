@@ -1,4 +1,5 @@
 const { Pool } = require('pg');
+const defaultState = require('./seed');
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -23,6 +24,7 @@ async function initDB() {
         )
       `);
       console.log(`DB connected successfully (attempt ${attempt}/${MAX_RETRIES})`);
+      await seedIfEmpty();
       return;
     } catch (e) {
       lastError = e;
@@ -43,6 +45,15 @@ async function checkHealth() {
     return { ok: true, db: 'connected' };
   } catch (e) {
     return { ok: false, db: 'disconnected', error: e.message };
+  }
+}
+
+async function seedIfEmpty() {
+  const existing = await getData();
+  if (!existing) {
+    console.log('Database empty — seeding default data...');
+    await saveData(defaultState);
+    console.log('Seed complete.');
   }
 }
 
