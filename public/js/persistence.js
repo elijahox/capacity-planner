@@ -14,6 +14,7 @@ function collectState() {
     people,
     initiativeDates,
     workProfiles,
+    tribeLeadership,
   };
 }
 
@@ -27,6 +28,9 @@ function applyState(data) {
   }
   if (data.workProfiles) {
     Object.assign(workProfiles, data.workProfiles);
+  }
+  if (data.tribeLeadership) {
+    Object.assign(tribeLeadership, data.tribeLeadership);
   }
 }
 

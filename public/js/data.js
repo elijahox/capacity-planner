@@ -6,7 +6,7 @@ const TRIBES = [
   { id:'web',    name:'Web',             color:'#1a5276' },
   { id:'range',  name:'Range',           color:'#1e8449' },
   { id:'app',    name:'App',             color:'#6c3483' },
-  { id:'cp',     name:'Cust Platform',   color:'#c17f24' },
+  { id:'cp',     name:'Customer Platform', color:'#c17f24' },
 ];
 
 let squads = [
@@ -27,6 +27,8 @@ let squads = [
   {id:'sfcrm',     tribe:'cp',    name:'Salesforce CRM',      size:9},
   {id:'ppng_cp',   tribe:'cp',    name:'PPNG',                size:5},
   {id:'nzloy_cp',  tribe:'cp',    name:'NZ Loyalty',          size:5},
+  {id:'core_crm',  tribe:'cp',    name:'Core CRM',            size:0},
+  {id:'ppng_cp2',  tribe:'cp',    name:'PPNG',                size:0},
 ];
 
 let initiatives = [
@@ -217,3 +219,7 @@ const initiativeDates = {
 // Weekly capacity % per initiative across its duration
 // workProfiles[initId] = array of weekly % values
 const workProfiles = {};
+
+// Tribe leadership designations — additional role, does not affect squad membership
+// tribeLeadership[tribeId] = [personId|null, personId|null, personId|null, personId|null]
+let tribeLeadership = {};

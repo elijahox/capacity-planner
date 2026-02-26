@@ -1,7 +1,12 @@
 // ================================================================
-// ORG CHART VIEW — Step 1: Layout + tribe/squad structure
+// ORG CHART VIEW
 // ================================================================
 
+// ── Drag state ────────────────────────────────────────────────
+let _orgDragPersonId = null;
+let _orgDragSourceSlot = null; // { tribeId, slotIdx } when dragging from a leadership slot
+
+// ── Top-level render ──────────────────────────────────────────
 function renderOrgChart() {
   const activeCount = people.filter(p => p.status === 'active').length;
   return `
@@ -18,18 +23,19 @@ function renderOrgChart() {
     </div>`;
 }
 
+// ── Tribe group ───────────────────────────────────────────────
 function renderOrgTribeGroup(tribe) {
   const tribeSquads = squads.filter(s => s.tribe === tribe.id);
   const tribeHC = tribeSquads.reduce((a, s) => a + getEffectiveSquadSize(s.id), 0);
   const c = tribe.color;
-  const SQ_W = 192;  // min-width for squad columns
+  const SQ_W = 192;
   const GAP = 12;
-  const NEW_W = 144; // width for the "+ New Squad" column
+  const NEW_W = 144;
 
   return `
     <div style="display:flex;flex-direction:column">
 
-      <!-- Tribe header node (spans squad area) -->
+      <!-- Tribe header node -->
       <div style="display:flex;gap:${GAP}px;margin-bottom:0">
         <div style="flex:1;background:${c};color:#fff;
                     border-radius:8px 8px 0 0;padding:10px 16px;
@@ -39,6 +45,9 @@ function renderOrgTribeGroup(tribe) {
         </div>
         <div style="width:${NEW_W}px;flex-shrink:0"></div>
       </div>
+
+      <!-- Leadership row -->
+      ${renderOrgLeadershipRow(tribe, GAP, NEW_W)}
 
       <!-- Connector row: horizontal bar + vertical drops to each squad -->
       <div style="display:flex;gap:${GAP}px;margin-bottom:0">
@@ -68,6 +77,99 @@ function renderOrgTribeGroup(tribe) {
     </div>`;
 }
 
+// ── Leadership row ────────────────────────────────────────────
+function renderOrgLeadershipRow(tribe, GAP, NEW_W) {
+  const slots = tribeLeadership[tribe.id] || [null, null, null, null];
+  const SLOT_COUNT = 4;
+
+  const slotsHtml = Array.from({ length: SLOT_COUNT }, (_, i) => {
+    const personId = slots[i] || null;
+    const p = personId ? people.find(x => x.id === personId && x.status === 'active') : null;
+    if (p) {
+      return renderOrgLeaderCard(p, tribe.id, i);
+    }
+    return `
+      <div style="flex:1;min-width:130px;border:1.5px dashed var(--border-strong);
+                  border-radius:7px;padding:10px;min-height:54px;
+                  display:flex;align-items:center;justify-content:center;
+                  color:var(--text-dim);font-size:11px;font-family:'JetBrains Mono',monospace;
+                  transition:background 0.15s,border-color 0.15s;cursor:default"
+           data-lead-slot="${tribe.id}_${i}"
+           ondragover="orgChartLeaderDragOver(event,'${tribe.id}',${i})"
+           ondragleave="orgChartLeaderDragLeave(event)"
+           ondrop="orgChartLeaderDrop(event,'${tribe.id}',${i})">
+        ＋ Drop leader here
+      </div>`;
+  }).join('');
+
+  return `
+    <div style="display:flex;align-items:center;gap:${GAP}px;
+                background:var(--bg2);
+                border-left:1px solid var(--border);
+                border-right:1px solid var(--border);
+                border-bottom:1px solid var(--border);
+                padding:10px 12px">
+      <!-- Label -->
+      <div style="flex-shrink:0;writing-mode:initial;padding-right:4px">
+        <span style="font-size:10px;font-family:'JetBrains Mono',monospace;
+                     color:var(--text-dim);text-transform:uppercase;letter-spacing:2px">Leadership</span>
+      </div>
+      <!-- 4 slots -->
+      <div style="display:flex;gap:8px;flex:1">
+        ${slotsHtml}
+      </div>
+      <!-- Spacer to match new-squad col -->
+      <div style="width:${NEW_W}px;flex-shrink:0"></div>
+    </div>`;
+}
+
+function renderOrgLeaderCard(p, tribeId, slotIdx) {
+  const shortType = { perm: 'Perm', contractor: 'Contractor', msp: 'MSP' }[p.type] || p.type;
+  let expiryHtml = '';
+  if (p.type !== 'perm' && p.endDate) {
+    const cls = getExpiryClass(p.endDate);
+    const lbl = getExpiryLabel(p.endDate);
+    expiryHtml = `<div class="${cls}" style="font-size:11px;margin-top:4px;font-family:'JetBrains Mono',monospace">${lbl}</div>`;
+  }
+  return `
+    <div class="orgchart-person-card"
+         draggable="true"
+         data-person-id="${p.id}"
+         data-lead-slot="${tribeId}_${slotIdx}"
+         ondragstart="orgChartDragStart(event,'${p.id}','${tribeId}',${slotIdx})"
+         ondragend="orgChartDragEnd(event)"
+         ondragover="orgChartLeaderDragOver(event,'${tribeId}',${slotIdx})"
+         ondragleave="orgChartLeaderDragLeave(event)"
+         ondrop="orgChartLeaderDrop(event,'${tribeId}',${slotIdx})"
+         onclick="openPersonModal('${p.id}')"
+         style="flex:1;min-width:130px;background:var(--bg);border:1px solid var(--border);
+                border-radius:7px;padding:9px 11px;user-select:none;position:relative">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:4px;margin-bottom:1px">
+        <div>
+          <div style="font-weight:700;font-size:13px">${p.name}</div>
+          <div style="color:var(--text-muted);font-size:12px;margin-bottom:6px">${p.role}</div>
+        </div>
+        <button onclick="orgChartClearLeaderSlot(event,'${tribeId}',${slotIdx})"
+                style="background:none;border:none;cursor:pointer;color:var(--text-dim);
+                       font-size:13px;padding:0 2px;line-height:1;flex-shrink:0"
+                title="Remove from leadership">✕</button>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px">
+        <span class="badge ${getTypeClass(p.type)}">${shortType}</span>
+        ${expiryHtml}
+      </div>
+    </div>`;
+}
+
+function orgChartClearLeaderSlot(event, tribeId, slotIdx) {
+  event.stopPropagation();
+  if (!tribeLeadership[tribeId]) tribeLeadership[tribeId] = [null, null, null, null];
+  tribeLeadership[tribeId][slotIdx] = null;
+  scheduleSave();
+  renderContent();
+}
+
+// ── Squad column ──────────────────────────────────────────────
 function renderOrgSquadCol(sq, tribe, minW) {
   const hc = getEffectiveSquadSize(sq.id);
   const { total: util } = getSquadAllocation(sq.id);
@@ -89,12 +191,20 @@ function renderOrgSquadCol(sq, tribe, minW) {
       <!-- Squad header -->
       <div style="padding:10px 12px;border-bottom:1px solid var(--border);background:var(--surface2)">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
-          <div class="orgchart-squad-name"
-               data-squad-id="${sq.id}"
-               ondblclick="orgChartRenameSquad('${sq.id}',this)"
-               title="Double-click to rename"
-               style="font-family:'Inter',sans-serif;font-weight:700;font-size:13px;
-                      flex:1;cursor:default">${sq.name}</div>
+          <div style="flex:1;display:flex;align-items:center;gap:4px;min-width:0">
+            <div class="orgchart-squad-name"
+                 id="squad-name-${sq.id}"
+                 ondblclick="orgChartRenameSquad('${sq.id}',this)"
+                 title="Double-click to rename"
+                 style="font-family:'Inter',sans-serif;font-weight:700;font-size:13px;
+                        cursor:default;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${sq.name}</div>
+            <button class="squad-edit-pencil"
+                    onclick="orgChartRenameSquadBtn('${sq.id}')"
+                    style="background:none;border:none;cursor:pointer;color:var(--text-dim);
+                           font-size:12px;padding:0 2px;line-height:1;flex-shrink:0;opacity:0;
+                           transition:opacity 0.1s"
+                    title="Rename squad">✏</button>
+          </div>
           <span class="badge badge-grey">${hc}p</span>
           <span class="badge ${utilClass(util)}">${util}%</span>
         </div>
@@ -111,28 +221,34 @@ function renderOrgSquadCol(sq, tribe, minW) {
     </div>`;
 }
 
-// ── Person cards ──────────────────────────────────────────────
+// ── Person card ───────────────────────────────────────────────
 function renderOrgPersonCard(p) {
   const shortType = { perm: 'Perm', contractor: 'Contractor', msp: 'MSP' }[p.type] || p.type;
-
-  // Contract expiry — only for non-perm with an end date
   let expiryHtml = '';
   if (p.type !== 'perm' && p.endDate) {
     const cls = getExpiryClass(p.endDate);
     const lbl = getExpiryLabel(p.endDate);
     expiryHtml = `<div class="${cls}" style="font-size:11px;margin-top:4px;font-family:'JetBrains Mono',monospace">${lbl}</div>`;
   }
-
   return `
     <div class="orgchart-person-card"
          draggable="true"
          data-person-id="${p.id}"
-         ondragstart="orgChartDragStart(event,'${p.id}')"
+         ondragstart="orgChartDragStart(event,'${p.id}',null,null)"
          ondragend="orgChartDragEnd(event)"
          onclick="openPersonModal('${p.id}')"
          style="background:var(--bg);border:1px solid var(--border);
-                border-radius:7px;padding:9px 11px;user-select:none">
-      <div style="font-weight:700;font-size:13px;margin-bottom:1px">${p.name}</div>
+                border-radius:7px;padding:9px 11px;user-select:none;position:relative">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:4px;margin-bottom:1px">
+        <div id="person-name-display-${p.id}"
+             style="font-weight:700;font-size:13px;flex:1">${p.name}</div>
+        <button class="person-edit-pencil"
+                onclick="orgChartEditPersonName('${p.id}',event)"
+                style="background:none;border:none;cursor:pointer;color:var(--text-dim);
+                       font-size:12px;padding:0 2px;line-height:1;flex-shrink:0;opacity:0;
+                       transition:opacity 0.1s"
+                title="Edit name">✏</button>
+      </div>
       <div style="color:var(--text-muted);font-size:12px;margin-bottom:6px">${p.role}</div>
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px">
         <span class="badge ${getTypeClass(p.type)}">${shortType}</span>
@@ -141,8 +257,51 @@ function renderOrgPersonCard(p) {
     </div>`;
 }
 
+// ── Inline person name edit ───────────────────────────────────
+function orgChartEditPersonName(personId, event) {
+  event.stopPropagation();
+  const p = people.find(x => x.id === personId);
+  if (!p) return;
+  const orig = p.name;
+  const nameEl = document.getElementById('person-name-display-' + personId);
+  if (!nameEl) return;
+
+  const input = document.createElement('input');
+  input.value = orig;
+  input.style.cssText = 'font-size:13px;font-family:"Inter",sans-serif;font-weight:700;' +
+    'padding:1px 4px;width:100%;border:1px solid var(--accent);border-radius:4px;' +
+    'outline:none;background:var(--surface);box-sizing:border-box';
+  input.onclick = e => e.stopPropagation();
+  input.onblur = () => {
+    const newName = input.value.trim();
+    if (newName && newName !== orig) {
+      p.name = newName;
+      scheduleSave();
+    }
+    nameEl.textContent = p.name;
+  };
+  input.onkeydown = e => {
+    if (e.key === 'Enter') input.blur();
+    if (e.key === 'Escape') { input.value = orig; input.blur(); }
+    e.stopPropagation();
+  };
+  nameEl.textContent = '';
+  nameEl.appendChild(input);
+  input.focus();
+  input.select();
+}
+
 // ── Squad rename ───────────────────────────────────────────────
 function orgChartRenameSquad(squadId, el) {
+  _orgChartRenameSquadInner(squadId, el);
+}
+
+function orgChartRenameSquadBtn(squadId) {
+  const el = document.getElementById('squad-name-' + squadId);
+  if (el) _orgChartRenameSquadInner(squadId, el);
+}
+
+function _orgChartRenameSquadInner(squadId, el) {
   const sq = squads.find(s => s.id === squadId);
   if (!sq) return;
   const orig = sq.name;
@@ -205,30 +364,33 @@ function orgChartConfirmNewSquad(tribeId) {
   renderSidebar();
 }
 
-// ── Drag and Drop ──────────────────────────────────────────────
-let _orgDragPersonId = null;
-
-function orgChartDragStart(event, personId) {
+// ── Drag and Drop (squad columns) ─────────────────────────────
+function orgChartDragStart(event, personId, fromTribeId, fromSlotIdx) {
   _orgDragPersonId = personId;
+  _orgDragSourceSlot = (fromTribeId !== null && fromTribeId !== 'null' && fromSlotIdx !== null)
+    ? { tribeId: fromTribeId, slotIdx: Number(fromSlotIdx) }
+    : null;
   event.dataTransfer.effectAllowed = 'move';
   event.dataTransfer.setData('text/plain', personId);
-  // Defer opacity change so the drag ghost renders at full opacity first
   setTimeout(() => {
-    const el = document.querySelector(`.orgchart-person-card[data-person-id="${personId}"]`);
-    if (el) el.style.opacity = '0.45';
+    document.querySelectorAll(`.orgchart-person-card[data-person-id="${personId}"]`)
+      .forEach(el => { el.style.opacity = '0.45'; });
   }, 0);
 }
 
 function orgChartDragEnd(event) {
-  // Restore opacity on the dragged card (it may have moved squads, so search broadly)
   document.querySelectorAll('.orgchart-person-card').forEach(el => {
     el.style.opacity = '';
   });
   _orgDragPersonId = null;
-  // Clear any lingering drop highlights
+  _orgDragSourceSlot = null;
   document.querySelectorAll('.orgchart-squad-col').forEach(el => {
     el.style.outline = '';
     el.style.background = '';
+  });
+  document.querySelectorAll('[data-lead-slot]').forEach(el => {
+    el.style.background = '';
+    el.style.borderColor = '';
   });
 }
 
@@ -242,7 +404,6 @@ function orgChartDragOver(event, squadId, color) {
 
 function orgChartDragLeave(event) {
   const col = event.currentTarget;
-  // Only clear when the pointer truly leaves the column (not just moves to a child)
   if (!col.contains(event.relatedTarget)) {
     col.style.outline = '';
     col.style.background = '';
@@ -259,14 +420,76 @@ function orgChartDrop(event, squadId) {
   if (!personId) return;
 
   const p = people.find(x => x.id === personId);
-  if (!p || p.squad === squadId) return;
+  if (!p) return;
 
-  p.squad = squadId;
+  // If dragged from a leadership slot, clear that slot (moving to squad removes from leadership)
+  if (_orgDragSourceSlot) {
+    const { tribeId, slotIdx } = _orgDragSourceSlot;
+    if (tribeLeadership[tribeId]) tribeLeadership[tribeId][slotIdx] = null;
+  }
+
+  if (p.squad !== squadId) {
+    p.squad = squadId;
+  }
+
   scheduleSave();
   renderContent();
   renderSidebar();
 }
 
+// ── Drag and Drop (leadership slots) ─────────────────────────
+function orgChartLeaderDragOver(event, tribeId, slotIdx) {
+  event.preventDefault();
+  event.stopPropagation();
+  event.dataTransfer.dropEffect = 'move';
+  const el = event.currentTarget;
+  el.style.background = 'var(--accent-light)';
+  el.style.borderColor = 'var(--accent)';
+  el.style.outline = '2px dashed var(--accent)';
+}
+
+function orgChartLeaderDragLeave(event) {
+  const el = event.currentTarget;
+  if (!el.contains(event.relatedTarget)) {
+    el.style.background = '';
+    el.style.borderColor = '';
+    el.style.outline = '';
+  }
+}
+
+function orgChartLeaderDrop(event, tribeId, slotIdx) {
+  event.preventDefault();
+  event.stopPropagation();
+  const el = event.currentTarget;
+  el.style.background = '';
+  el.style.borderColor = '';
+  el.style.outline = '';
+
+  const personId = event.dataTransfer.getData('text/plain') || _orgDragPersonId;
+  if (!personId) return;
+
+  // No-op if dropping on same slot
+  if (_orgDragSourceSlot && _orgDragSourceSlot.tribeId === tribeId && _orgDragSourceSlot.slotIdx === slotIdx) return;
+
+  if (!tribeLeadership[tribeId]) tribeLeadership[tribeId] = [null, null, null, null];
+
+  // Clear old slot if dragging from another leadership slot
+  if (_orgDragSourceSlot) {
+    const { tribeId: oldTribe, slotIdx: oldSlot } = _orgDragSourceSlot;
+    if (tribeLeadership[oldTribe]) tribeLeadership[oldTribe][oldSlot] = null;
+  }
+
+  // Also clear if this person is already in another slot for this tribe (avoid duplicates)
+  tribeLeadership[tribeId] = tribeLeadership[tribeId].map((id, i) =>
+    (i !== slotIdx && id === personId) ? null : id
+  );
+
+  tribeLeadership[tribeId][slotIdx] = personId;
+  scheduleSave();
+  renderContent();
+}
+
+// ── Helpers ───────────────────────────────────────────────────
 function _hexToRgba(hex, alpha) {
   const r = parseInt(hex.slice(1, 3), 16);
   const g = parseInt(hex.slice(3, 5), 16);
