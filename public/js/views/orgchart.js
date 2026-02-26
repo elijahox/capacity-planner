@@ -6,6 +6,48 @@
 let _orgDragPersonId = null;
 let _orgDragSourceSlot = null; // { tribeId, slotIdx } when dragging from a leadership slot
 
+// ── Drag-to-scroll state ──────────────────────────────────────
+let _orgScrollRAF = null;
+let _orgMouseX = 0;
+let _orgMouseY = 0;
+
+function _orgTrackMouse(e) {
+  _orgMouseX = e.clientX;
+  _orgMouseY = e.clientY;
+}
+
+function _orgScrollLoop() {
+  const EDGE = 120;
+  const FAST = 10;
+  const SLOW = 4;
+
+  // Horizontal: scroll the org chart overflow container
+  const hEl = document.getElementById('orgchart-scroll');
+  if (hEl) {
+    const r = hEl.getBoundingClientRect();
+    if (_orgMouseY >= r.top && _orgMouseY <= r.bottom) {
+      const dLeft  = _orgMouseX - r.left;
+      const dRight = r.right - _orgMouseX;
+      if (dLeft  >= 0 && dLeft  < EDGE) hEl.scrollLeft -= dLeft  < EDGE / 2 ? FAST : SLOW;
+      else if (dRight >= 0 && dRight < EDGE) hEl.scrollLeft += dRight < EDGE / 2 ? FAST : SLOW;
+    }
+  }
+
+  // Vertical: scroll the main content pane
+  const vEl = document.getElementById('content');
+  if (vEl) {
+    const r = vEl.getBoundingClientRect();
+    if (_orgMouseX >= r.left && _orgMouseX <= r.right) {
+      const dTop    = _orgMouseY - r.top;
+      const dBottom = r.bottom - _orgMouseY;
+      if (dTop    >= 0 && dTop    < EDGE) vEl.scrollTop -= dTop    < EDGE / 2 ? FAST : SLOW;
+      else if (dBottom >= 0 && dBottom < EDGE) vEl.scrollTop += dBottom < EDGE / 2 ? FAST : SLOW;
+    }
+  }
+
+  _orgScrollRAF = requestAnimationFrame(_orgScrollLoop);
+}
+
 // ── Top-level render ──────────────────────────────────────────
 function renderOrgChart() {
   const activeCount = people.filter(p => p.status === 'active').length;
@@ -16,7 +58,7 @@ function renderOrgChart() {
         <div class="section-sub">${squads.length} squads · ${activeCount} active people</div>
       </div>
     </div>
-    <div style="overflow-x:auto;padding-bottom:24px">
+    <div id="orgchart-scroll" style="overflow-x:auto;padding-bottom:24px">
       <div style="display:inline-flex;gap:24px;align-items:flex-start;min-width:max-content;padding:4px 2px">
         ${TRIBES.map(tribe => renderOrgTribeGroup(tribe)).join('')}
       </div>
@@ -376,6 +418,10 @@ function orgChartDragStart(event, personId, fromTribeId, fromSlotIdx) {
     document.querySelectorAll(`.orgchart-person-card[data-person-id="${personId}"]`)
       .forEach(el => { el.style.opacity = '0.45'; });
   }, 0);
+
+  // Start drag-to-scroll
+  document.addEventListener('dragover', _orgTrackMouse);
+  _orgScrollRAF = requestAnimationFrame(_orgScrollLoop);
 }
 
 function orgChartDragEnd(event) {
@@ -392,6 +438,10 @@ function orgChartDragEnd(event) {
     el.style.background = '';
     el.style.borderColor = '';
   });
+
+  // Stop drag-to-scroll
+  document.removeEventListener('dragover', _orgTrackMouse);
+  if (_orgScrollRAF !== null) { cancelAnimationFrame(_orgScrollRAF); _orgScrollRAF = null; }
 }
 
 function orgChartDragOver(event, squadId, color) {

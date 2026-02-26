@@ -5,12 +5,31 @@
 let currentView = 'overview';
 let selectedSquad = null;
 let collapsedTribes = {};
+let _sidebarCollapsed = localStorage.getItem('cp_sidebar_collapsed') === 'true';
 
 // ── Sidebar ──────────────────────────────────────────────────────
 
+function toggleSidebar() {
+  _sidebarCollapsed = !_sidebarCollapsed;
+  localStorage.setItem('cp_sidebar_collapsed', String(_sidebarCollapsed));
+  const el = document.getElementById('sidebar');
+  el.classList.toggle('collapsed', _sidebarCollapsed);
+  const btn = el.querySelector('.sidebar-toggle-btn');
+  if (btn) {
+    btn.textContent = _sidebarCollapsed ? '›' : '‹';
+    btn.title = _sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar';
+  }
+}
+
 function renderSidebar() {
   const el = document.getElementById('sidebar');
-  let html = '';
+
+  const icon = _sidebarCollapsed ? '›' : '‹';
+  const title = _sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar';
+  let html = `<div class="sidebar-toggle">
+    <button class="sidebar-toggle-btn" onclick="toggleSidebar()" title="${title}">${icon}</button>
+  </div>`;
+
   TRIBES.forEach(tribe => {
     const tribeSquads = squads.filter(s => s.tribe === tribe.id);
     const totalHC = tribeSquads.reduce((a, s) => a + getEffectiveSquadSize(s.id), 0);
@@ -37,7 +56,9 @@ function renderSidebar() {
     }
     html += '</div>';
   });
+
   el.innerHTML = html;
+  el.classList.toggle('collapsed', _sidebarCollapsed);
 
   // Update contractor watch badge
   const urgent = getContractorsExpiringSoon(30).length;
