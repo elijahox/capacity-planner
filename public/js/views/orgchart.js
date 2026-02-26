@@ -8,10 +8,29 @@ let _orgDragSourceSlot = null; // { tribeId, slotIdx } when dragging from a lead
 let _orgDropTargetId = null;   // personId of card currently hovered during drag
 let _orgDropPosition = null;   // 'before' | 'after' relative to target card
 
+// ── Split-squad drag context ─────────────────────────────────
+let _orgDragContext = 'primary'; // 'primary' | 'secondary'
+
 // ── Drag-to-scroll state ──────────────────────────────────────
 let _orgScrollRAF = null;
 let _orgMouseX = 0;
 let _orgMouseY = 0;
+
+// ── Scroll-preserving re-render ──────────────────────────────
+// renderContent() destroys the DOM, resetting scroll position.
+// This wrapper captures and restores both horizontal (orgchart-scroll)
+// and vertical (#content) scroll offsets around the re-render.
+function orgChartRerender() {
+  const contentEl = document.getElementById('content');
+  const scroller = document.getElementById('orgchart-scroll');
+  const scrollLeft = scroller ? scroller.scrollLeft : 0;
+  const scrollTop = contentEl ? contentEl.scrollTop : 0;
+  renderContent();
+  const newScroller = document.getElementById('orgchart-scroll');
+  const newContentEl = document.getElementById('content');
+  if (newScroller) newScroller.scrollLeft = scrollLeft;
+  if (newContentEl) newContentEl.scrollTop = scrollTop;
+}
 
 function _orgTrackMouse(e) {
   _orgMouseX = e.clientX;
@@ -210,7 +229,7 @@ function orgChartClearLeaderSlot(event, tribeId, slotIdx) {
   if (!tribeLeadership[tribeId]) tribeLeadership[tribeId] = [null, null, null, null];
   tribeLeadership[tribeId][slotIdx] = null;
   scheduleSave();
-  renderContent();
+  orgChartRerender();
 }
 
 // ── Squad column ──────────────────────────────────────────────
@@ -219,12 +238,17 @@ function renderOrgSquadCol(sq, tribe, minW) {
   const { total: util } = getSquadAllocation(sq.id);
   const c = tribe.color;
 
-  // Sort active members by squadOrder; unlisted members go to end
-  let activePeople = people.filter(p => p.squad === sq.id && p.status === 'active');
+  // Gather primary + secondary members, tag each with context
+  const primaryPeople = people.filter(p => p.squad === sq.id && p.status === 'active');
+  const secondaryPeople = people.filter(p => p.secondarySquad === sq.id && p.squad !== sq.id && p.status === 'active');
+  let allSquadPeople = [
+    ...primaryPeople.map(p => ({ person: p, context: 'primary' })),
+    ...secondaryPeople.map(p => ({ person: p, context: 'secondary' })),
+  ];
   const order = squadOrder[sq.id] || [];
-  activePeople = activePeople.slice().sort((a, b) => {
-    const ai = order.indexOf(a.id);
-    const bi = order.indexOf(b.id);
+  allSquadPeople.sort((a, b) => {
+    const ai = order.indexOf(a.person.id);
+    const bi = order.indexOf(b.person.id);
     return (ai === -1 ? Infinity : ai) - (bi === -1 ? Infinity : bi);
   });
 
@@ -266,36 +290,66 @@ function renderOrgSquadCol(sq, tribe, minW) {
 
       <!-- Person cards (drop zone) -->
       <div style="padding:8px;min-height:64px;display:flex;flex-direction:column;gap:6px">
-        ${activePeople.length === 0
+        ${allSquadPeople.length === 0
           ? `<div style="text-align:center;padding:14px 0;color:var(--text-dim);font-size:12px">No members</div>`
-          : activePeople.map(p => renderOrgPersonCard(p)).join('')}
+          : allSquadPeople.map(({ person, context }) => renderOrgPersonCard(person, context)).join('')}
       </div>
     </div>`;
 }
 
 // ── Person card ───────────────────────────────────────────────
-function renderOrgPersonCard(p) {
+function renderOrgPersonCard(p, context) {
+  context = context || 'primary';
+  const isSecondary = context === 'secondary';
+  const isShared = !!(p.secondarySquad);
   const shortType = { perm: 'Perm', contractor: 'Contractor', msp: 'MSP' }[p.type] || p.type;
+
+  // Determine card background and shared badges
+  let cardBg = 'var(--bg)';
+  let sharedBadges = '';
+  let tooltipAttr = '';
+  if (isShared) {
+    const primarySq = squads.find(s => s.id === p.squad);
+    const secondarySq = squads.find(s => s.id === p.secondarySquad);
+    const t1 = primarySq ? TRIBES.find(t => t.id === primarySq.tribe) : null;
+    const t2 = secondarySq ? TRIBES.find(t => t.id === secondarySq.tribe) : null;
+    const c1 = t1 ? t1.color : '#94a3b8';
+    const c2 = t2 ? t2.color : '#94a3b8';
+    cardBg = `linear-gradient(135deg, ${_hexToRgba(c1, 0.08)} 50%, ${_hexToRgba(c2, 0.08)} 50%)`;
+    sharedBadges = `<span class="badge" style="background:#6c3483;color:#fff;font-size:10px;padding:1px 6px">Shared</span>
+                    <span class="badge badge-grey" style="font-size:10px;padding:1px 6px">50%</span>`;
+    const pName = primarySq ? primarySq.name : 'Unassigned';
+    const sName = secondarySq ? secondarySq.name : 'Unknown';
+    tooltipAttr = ` title="Shared — 50% ${pName} · 50% ${sName}"`;
+  }
+
+  // Determine which squad this card instance belongs to for drag-drop
+  const cardSquadId = isSecondary ? p.secondarySquad : p.squad;
+
   let expiryHtml = '';
   if (p.type !== 'perm' && p.endDate) {
     const cls = getExpiryClass(p.endDate);
     const lbl = getExpiryLabel(p.endDate);
     expiryHtml = `<div class="${cls}" style="font-size:11px;margin-top:4px;font-family:'JetBrains Mono',monospace">${lbl}</div>`;
   }
+
+  // Use unique DOM ID per context so secondary card doesn't collide with primary
+  const nameElId = isSecondary ? `person-name-display-${p.id}-sec` : `person-name-display-${p.id}`;
+
   return `
     <div class="orgchart-person-card"
          draggable="true"
          data-person-id="${p.id}"
-         ondragstart="orgChartDragStart(event,'${p.id}',null,null)"
+         ondragstart="orgChartDragStart(event,'${p.id}',null,null,'${context}')"
          ondragend="orgChartDragEnd(event)"
-         ondragover="orgChartCardDragOver(event,'${p.id}','${p.squad}')"
+         ondragover="orgChartCardDragOver(event,'${p.id}','${cardSquadId}')"
          ondragleave="orgChartCardDragLeave(event)"
-         ondrop="orgChartCardDrop(event,'${p.id}','${p.squad}')"
-         onclick="openPersonModal('${p.id}')"
-         style="background:var(--bg);border:1px solid var(--border);
+         ondrop="orgChartCardDrop(event,'${p.id}','${cardSquadId}')"
+         onclick="openPersonModal('${p.id}')"${tooltipAttr}
+         style="background:${cardBg};border:1px solid var(--border);
                 border-radius:7px;padding:9px 11px;user-select:none;position:relative">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:4px;margin-bottom:1px">
-        <div id="person-name-display-${p.id}"
+        <div id="${nameElId}"
              style="font-weight:700;font-size:13px;flex:1">${p.name}</div>
         <button class="person-edit-pencil"
                 onclick="orgChartEditPersonName('${p.id}',event)"
@@ -305,8 +359,9 @@ function renderOrgPersonCard(p) {
                 title="Edit name">✏</button>
       </div>
       <div style="color:var(--text-muted);font-size:12px;margin-bottom:6px">${p.role}</div>
-      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px">
+      <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px">
         <span class="badge ${getTypeClass(p.type)}">${shortType}</span>
+        ${sharedBadges}
         ${expiryHtml}
       </div>
     </div>`;
@@ -396,12 +451,12 @@ function orgChartNewSquad(tribeId) {
       <input class="form-input" id="new-sq-inp-${tribeId}"
              placeholder="Squad name"
              onkeydown="if(event.key==='Enter')orgChartConfirmNewSquad('${tribeId}');
-                        if(event.key==='Escape')renderContent();" />
+                        if(event.key==='Escape')orgChartRerender();" />
       <div style="display:flex;gap:6px">
         <button class="btn btn-primary btn-sm" style="flex:1"
                 onclick="orgChartConfirmNewSquad('${tribeId}')">Add</button>
         <button class="btn btn-secondary btn-sm"
-                onclick="renderContent()">✕</button>
+                onclick="orgChartRerender()">✕</button>
       </div>
     </div>`;
   const inp = document.getElementById('new-sq-inp-' + tribeId);
@@ -415,13 +470,14 @@ function orgChartConfirmNewSquad(tribeId) {
   if (!name) { alert('Squad name is required'); return; }
   squads.push({ id: 'sq_' + Date.now(), tribe: tribeId, name, size: 0 });
   scheduleSave();
-  renderContent();
+  orgChartRerender();
   renderSidebar();
 }
 
 // ── Drag and Drop (squad columns) ─────────────────────────────
-function orgChartDragStart(event, personId, fromTribeId, fromSlotIdx) {
+function orgChartDragStart(event, personId, fromTribeId, fromSlotIdx, squadContext) {
   _orgDragPersonId = personId;
+  _orgDragContext = squadContext || 'primary';
   _orgDragSourceSlot = (fromTribeId !== null && fromTribeId !== 'null' && fromSlotIdx !== null)
     ? { tribeId: fromTribeId, slotIdx: Number(fromSlotIdx) }
     : null;
@@ -443,6 +499,7 @@ function orgChartDragEnd(event) {
     el.style.transform = '';
   });
   _orgDragPersonId = null;
+  _orgDragContext = 'primary';
   _orgDragSourceSlot = null;
   _orgDropTargetId = null;
   _orgDropPosition = null;
@@ -497,18 +554,31 @@ function orgChartDrop(event, squadId) {
     if (tribeLeadership[tribeId]) tribeLeadership[tribeId][slotIdx] = null;
   }
 
-  const sourceSquadId = p.squad;
-  if (sourceSquadId !== squadId) {
-    _orgRemoveFromOrder(sourceSquadId, personId);
-    _orgGetOrInitOrder(squadId);
-    if (!squadOrder[squadId].includes(personId)) {
-      squadOrder[squadId].push(personId); // append to end
+  if (_orgDragContext === 'secondary') {
+    // Dragged from secondary position → update secondarySquad
+    const sourceSecondary = p.secondarySquad;
+    if (sourceSecondary !== squadId) {
+      _orgRemoveFromOrder(sourceSecondary, personId);
+      _orgGetOrInitOrder(squadId);
+      if (!squadOrder[squadId].includes(personId)) squadOrder[squadId].push(personId);
+      // Dropping onto primary squad → consolidate (clear secondary)
+      p.secondarySquad = (squadId === p.squad) ? null : squadId;
     }
-    p.squad = squadId;
+  } else {
+    // Dragged from primary position → update squad (original behavior)
+    const sourceSquadId = p.squad;
+    if (sourceSquadId !== squadId) {
+      _orgRemoveFromOrder(sourceSquadId, personId);
+      _orgGetOrInitOrder(squadId);
+      if (!squadOrder[squadId].includes(personId)) squadOrder[squadId].push(personId);
+      // Dropping onto secondary squad → consolidate (clear secondary)
+      if (squadId === p.secondarySquad) p.secondarySquad = null;
+      p.squad = squadId;
+    }
   }
 
   scheduleSave();
-  renderContent();
+  orgChartRerender();
   renderSidebar();
 }
 
@@ -556,15 +626,23 @@ function orgChartCardDrop(event, targetPersonId, targetSquadId) {
     if (tribeLeadership[tribeId]) tribeLeadership[tribeId][slotIdx] = null;
   }
 
-  const sourceSquadId = p.squad;
   const pos = _orgDropPosition || 'after';
 
-  _orgRemoveFromOrder(sourceSquadId, draggedId);
-  _orgInsertIntoOrder(targetSquadId, draggedId, targetPersonId, pos);
-  p.squad = targetSquadId;
+  if (_orgDragContext === 'secondary') {
+    const sourceSecondary = p.secondarySquad;
+    _orgRemoveFromOrder(sourceSecondary, draggedId);
+    _orgInsertIntoOrder(targetSquadId, draggedId, targetPersonId, pos);
+    p.secondarySquad = (targetSquadId === p.squad) ? null : targetSquadId;
+  } else {
+    const sourceSquadId = p.squad;
+    _orgRemoveFromOrder(sourceSquadId, draggedId);
+    _orgInsertIntoOrder(targetSquadId, draggedId, targetPersonId, pos);
+    if (targetSquadId === p.secondarySquad) p.secondarySquad = null;
+    p.squad = targetSquadId;
+  }
 
   scheduleSave();
-  renderContent();
+  orgChartRerender();
   renderSidebar();
 }
 
@@ -572,7 +650,7 @@ function orgChartCardDrop(event, targetPersonId, targetSquadId) {
 function _orgGetOrInitOrder(squadId) {
   if (!squadOrder[squadId]) {
     squadOrder[squadId] = people
-      .filter(p => p.squad === squadId && p.status === 'active')
+      .filter(p => (p.squad === squadId || p.secondarySquad === squadId) && p.status === 'active')
       .map(p => p.id);
   }
   return squadOrder[squadId];
@@ -656,11 +734,13 @@ function orgChartLeaderDrop(event, tribeId, slotIdx) {
   const p = people.find(x => x.id === personId);
   if (p) {
     _orgRemoveFromOrder(p.squad, personId);
+    if (p.secondarySquad) _orgRemoveFromOrder(p.secondarySquad, personId);
     p.squad = null;
+    p.secondarySquad = null;
   }
 
   scheduleSave();
-  renderContent();
+  orgChartRerender();
   renderSidebar();
 }
 

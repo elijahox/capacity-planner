@@ -75,3 +75,15 @@ restore: Railway dashboard → Postgres service → Backups tab → select
 restore point. `seed.js` provides baseline recovery for fresh database
 instances. For complete data safety: manually export state via the app
 before any major infrastructure changes.
+
+## 2026-02-27: Split squad assignments (secondarySquad)
+People can now belong to two squads at 50/50 split via a `secondarySquad` field.
+Shared members count 0.5 headcount in each squad for capacity calculations.
+Org chart renders shared cards in both columns with a diagonal gradient background
+and "Shared" / "50%" badges; drag-drop is context-aware (primary vs secondary).
+
+## 2026-02-27: Org chart scroll preservation
+Added `orgChartRerender()` helper that captures and restores both horizontal
+(`#orgchart-scroll.scrollLeft`) and vertical (`#content.scrollTop`) scroll
+positions around `renderContent()` calls. Prevents scroll jumping on drag-drop,
+squad creation, and rename operations.

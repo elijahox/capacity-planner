@@ -24,8 +24,8 @@ function renderSquads() {
   if (!sq) return tabBar;
   const tribe = TRIBES.find(t => t.id === sq.tribe);
   const { total, breakdown } = getSquadAllocation(sq.id);
-  const sqPeople = people.filter(p => p.squad === sq.id && p.status === 'active');
-  const hc = sqPeople.length > 0 ? sqPeople.length : sq.size;
+  const sqPeople = people.filter(p => (p.squad === sq.id || p.secondarySquad === sq.id) && p.status === 'active');
+  const hc = getEffectiveSquadSize(sq.id);
 
   // Build allocation bar
   let barSegs = '', legend = '';

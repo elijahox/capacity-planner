@@ -39,15 +39,17 @@ function renderPeople() {
     </div>
     <div class="card">
       <table class="data-table">
-        <thead><tr><th>Name</th><th>Role</th><th>Squad</th><th>Tribe</th><th>Type</th><th>Day Rate</th><th>Agency</th><th>End Date</th><th>Next Action</th><th>Action Status</th></tr></thead>
+        <thead><tr><th>Name</th><th>Role</th><th>Squad</th><th>2nd Squad</th><th>Tribe</th><th>Type</th><th>Day Rate</th><th>Agency</th><th>End Date</th><th>Next Action</th><th>Action Status</th></tr></thead>
         <tbody>
           ${filtered.map(p => {
             const sq = squads.find(s => s.id === p.squad);
+            const secSq = p.secondarySquad ? squads.find(s => s.id === p.secondarySquad) : null;
             const tribe = sq ? TRIBES.find(t => t.id === sq.tribe) : null;
             return `<tr onclick="openPersonModal('${p.id}')">
               <td><strong>${p.name}</strong></td>
               <td style="color:var(--text-muted)">${p.role}</td>
               <td>${sq ? sq.name : '—'}</td>
+              <td>${secSq ? secSq.name : '—'}</td>
               <td>${tribe ? `<span style="display:flex;align-items:center;gap:5px"><div style="width:7px;height:7px;border-radius:50%;background:${tribe.color}"></div>${tribe.name}</span>` : '—'}</td>
               <td><span class="badge ${getTypeClass(p.type)}">${getTypeLabel(p.type)}</span></td>
               <td style="font-family:'JetBrains Mono',monospace">${fmtCurrency(p.dayRate)}</td>
@@ -116,6 +118,13 @@ function openPersonModal(id) {
           </select>
         </div>
         <div class="form-group">
+          <div class="form-label">Secondary Squad</div>
+          <select class="form-select" id="pm-squad2">
+            <option value="" ${!p.secondarySquad?'selected':''}>— None —</option>
+            ${squads.map(s=>`<option value="${s.id}" ${s.id===p.secondarySquad?'selected':''}>${s.name}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group">
           <div class="form-label">Day Rate (ex GST)</div>
           <input class="form-input" id="pm-rate" type="number" value="${p.dayRate||''}" placeholder="e.g. 1200" />
         </div>
@@ -178,10 +187,12 @@ function savePerson(id) {
   if (newSquad !== p.squad) {
     removePersonFromLeadership(id);
   }
+  const secSquad = document.getElementById('pm-squad2').value || null;
   p.name = document.getElementById('pm-name').value;
   p.role = document.getElementById('pm-role').value;
   p.type = document.getElementById('pm-type').value;
   p.squad = newSquad;
+  p.secondarySquad = (secSquad && secSquad !== newSquad) ? secSquad : null;
   p.dayRate = parseFloat(document.getElementById('pm-rate').value) || null;
   p.agency = document.getElementById('pm-agency').value || null;
   p.startDate = document.getElementById('pm-start').value || null;
@@ -237,6 +248,13 @@ function openAddPersonModal(squadId) {
           </select>
         </div>
         <div class="form-group">
+          <div class="form-label">Secondary Squad</div>
+          <select class="form-select" id="np-squad2">
+            <option value="">— None —</option>
+            ${squads.map(s=>`<option value="${s.id}">${s.name}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group">
           <div class="form-label">Day Rate (ex GST)</div>
           <input class="form-input" id="np-rate" type="number" placeholder="e.g. 1200" />
         </div>
@@ -273,11 +291,14 @@ function openAddPersonModal(squadId) {
 function addPerson() {
   const name = document.getElementById('np-name').value.trim();
   if (!name) { alert('Name is required'); return; }
+  const npSquad = document.getElementById('np-squad').value;
+  const npSec = document.getElementById('np-squad2').value || null;
   const newPerson = {
     id: 'p_' + Date.now(),
     name,
     role: document.getElementById('np-role').value,
-    squad: document.getElementById('np-squad').value,
+    squad: npSquad,
+    secondarySquad: (npSec && npSec !== npSquad) ? npSec : null,
     type: document.getElementById('np-type').value,
     dayRate: parseFloat(document.getElementById('np-rate').value) || null,
     agency: document.getElementById('np-agency').value || null,

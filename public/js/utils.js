@@ -21,8 +21,15 @@ function fmtCurrency(n) {
 }
 
 // Headcount for a squad from the people register
+// Split-squad members count 0.5 in each squad
 function getSquadHeadcount(squadId) {
-  return people.filter(p => p.squad === squadId && p.status === 'active').length;
+  let count = 0;
+  people.forEach(p => {
+    if (p.status !== 'active') return;
+    if (p.squad === squadId) count += (p.secondarySquad ? 0.5 : 1);
+    else if (p.secondarySquad === squadId) count += 0.5;
+  });
+  return count;
 }
 
 // Squad size = people register count (live) + any manual buffer
