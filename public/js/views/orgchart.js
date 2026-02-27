@@ -16,6 +16,19 @@ let _orgScrollRAF = null;
 let _orgMouseX = 0;
 let _orgMouseY = 0;
 
+// ── Cleanup — called before navigating away from org chart ───
+// Removes document-level listeners and cancels any in-flight RAF
+// to prevent leaked handlers when the view DOM is destroyed.
+function cleanupOrgChart() {
+  document.removeEventListener('dragover', _orgTrackMouse);
+  if (_orgScrollRAF !== null) { cancelAnimationFrame(_orgScrollRAF); _orgScrollRAF = null; }
+  _orgDragPersonId = null;
+  _orgDragSourceSlot = null;
+  _orgDragContext = 'primary';
+  _orgDropTargetId = null;
+  _orgDropPosition = null;
+}
+
 // ── Scroll-preserving re-render ──────────────────────────────
 // renderContent() destroys the DOM, resetting scroll position.
 // This wrapper captures scroll offsets, re-renders, then uses
@@ -501,7 +514,9 @@ function orgChartDragStart(event, personId, fromTribeId, fromSlotIdx, squadConte
       .forEach(el => { el.style.opacity = '0.5'; el.style.transform = 'scale(0.95)'; });
   }, 0);
 
-  // Start drag-to-scroll
+  // Start drag-to-scroll (defensive: remove first in case dragend didn't fire)
+  document.removeEventListener('dragover', _orgTrackMouse);
+  if (_orgScrollRAF !== null) { cancelAnimationFrame(_orgScrollRAF); _orgScrollRAF = null; }
   document.addEventListener('dragover', _orgTrackMouse);
   _orgScrollRAF = requestAnimationFrame(_orgScrollLoop);
 }

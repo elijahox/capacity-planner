@@ -92,6 +92,9 @@ function showView(view, btn) {
 }
 
 function renderContent() {
+  // Clean up org chart document-level listeners before destroying the DOM
+  if (typeof cleanupOrgChart === 'function') cleanupOrgChart();
+
   const views = {
     overview:    renderOverview,
     squads:      renderSquads,

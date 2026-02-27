@@ -140,8 +140,9 @@ async function loadAndInit() {
   renderContent();
 
   // Poll every 60 seconds and merge changes from other users
-  if (!window._pollInterval) {
-    window._pollInterval = setInterval(async () => {
+  // Clear-and-reset: prevents stale intervals stacking on re-auth
+  if (window._pollInterval) clearInterval(window._pollInterval);
+  window._pollInterval = setInterval(async () => {
       if (_pendingSave || _isSaving) {
         console.log('Poll skipped — save in progress');
         return;
@@ -164,5 +165,4 @@ async function loadAndInit() {
         }
       } catch(e) {}
     }, 60000);
-  }
 }
