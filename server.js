@@ -12,10 +12,21 @@ const PORT     = process.env.PORT || 3000;
 const PASSWORD = process.env.PLANNER_PASSWORD || 'ecomm2026';
 
 // ── Security headers ──────────────────────────────────────────────
-// CSP disabled: index.html uses inline <script> and <style> blocks.
+// CSP: allows 'unsafe-inline' for onclick/onchange handlers in dynamic HTML.
+//      Does NOT allow 'unsafe-eval' — eval()/new Function() are blocked.
 // COEP disabled: app loads cross-origin resources (Google Fonts etc).
 app.use(helmet({
-  contentSecurityPolicy:    false,
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc:    ["'self'"],
+      scriptSrc:     ["'self'", "'unsafe-inline'"],
+      scriptSrcAttr: ["'unsafe-inline'"],   // onclick/onchange handlers in dynamic HTML
+      styleSrc:      ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc:       ["'self'", "https://fonts.gstatic.com"],
+      imgSrc:        ["'self'", "data:"],
+      connectSrc:    ["'self'"],
+    },
+  },
   crossOriginEmbedderPolicy: false,
 }));
 

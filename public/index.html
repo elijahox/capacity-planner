@@ -737,6 +737,9 @@ canvas { display: block; }
   .summary-row { grid-template-columns: 1fr; }
   .form-grid { grid-template-columns: 1fr; }
 }
+
+/* Auth input focus — replaces inline onfocus/onblur JS */
+#auth-input:focus { border-color: var(--accent) !important; }
 </style>
 </head>
 <body>
@@ -749,8 +752,7 @@ canvas { display: block; }
     <div style="font-size:13px;color:var(--text);margin-bottom:12px;text-align:left;font-weight:600">Team password</div>
     <input id="auth-input" type="password" placeholder="Enter password"
       style="width:100%;box-sizing:border-box;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-family:'Inter',sans-serif;outline:none;margin-bottom:10px"
-      onkeydown="if(event.key==='Enter')submitAuth()"
-      onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+      onkeydown="if(event.key==='Enter')submitAuth()">
     <div id="auth-error" style="display:none;color:var(--red);font-size:12px;margin-bottom:10px;text-align:left"></div>
     <button id="auth-btn" onclick="submitAuth()"
       style="width:100%;padding:11px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:14px;font-family:'Inter',sans-serif;font-weight:600;cursor:pointer">
