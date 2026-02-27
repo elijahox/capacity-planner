@@ -77,8 +77,7 @@ function goToSquad(id) {
   currentView = 'squads';
   localStorage.setItem('cp_active_view', 'squads');
   localStorage.setItem('cp_active_squad', id);
-  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('.nav-btn')[1].classList.add('active');
+  _highlightActiveNav();
   renderContent();
   renderSidebar();
 }
@@ -121,7 +120,6 @@ function renderContent() {
     financials:  renderFinancials,
   };
   document.getElementById('content').innerHTML = (views[currentView] || renderOverview)();
-  scheduleSave();
 }
 
 // ── Modals ───────────────────────────────────────────────────────

@@ -1,11 +1,10 @@
 # Architecture Decisions
 
-## 2026-02-21: SQLite over Postgres
-Chose SQLite (better-sqlite3) for simplicity — small team,
-no complex queries, single JSON blob storage. Can migrate
-to Postgres later if needed. Railway free tier caveat:
-storage is ephemeral, upgrade to paid or migrate to Postgres
-for production reliability.
+## 2026-02-21: SQLite → PostgreSQL migration
+Initially chose SQLite (better-sqlite3) for simplicity. Migrated to
+PostgreSQL (pg module) for Railway production reliability — SQLite on
+Railway has ephemeral storage. Postgres provides persistent data, automatic
+backups, and multi-user safety. Single JSON blob pattern retained.
 
 ## 2026-02-21: Single JSON blob storage
 Store entire app state as one JSON blob under key `'state'`

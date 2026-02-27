@@ -3,7 +3,7 @@
 ## Project Overview
 - **What**: Internal capacity planning tool for C&S Ecomm Experience teams
 - **Live URL**: https://capacity-planner-production-e917.up.railway.app
-- **Stack**: Node.js + Express + SQLite (better-sqlite3) + vanilla JS frontend
+- **Stack**: Node.js + Express + PostgreSQL (pg) + vanilla JS frontend
 - **Auth**: Single shared team password (`PLANNER_PASSWORD` env var, default `ecomm2026`)
 
 ## Architecture
@@ -11,7 +11,7 @@
 ```
 capacity-planner/
 ├── server.js              # Express server, API routes, auth, serves public/
-├── db.js                  # SQLite setup, save/load state as single JSON blob
+├── db.js                  # PostgreSQL setup, save/load state as single JSON blob
 ├── tests/
 │   └── api.test.js        # Backend API tests using node:test (8 tests)
 ├── public/
@@ -60,7 +60,7 @@ capacity-planner/
 
 ## Data Model
 
-All state is saved as a single JSON blob in SQLite under key `'state'`.
+All state is saved as a single JSON blob in PostgreSQL under key `'state'`.
 
 ```js
 // squads — tribes: web, range, app, cp
@@ -115,7 +115,7 @@ All state is saved as a single JSON blob in SQLite under key `'state'`.
 1. On load: check `sessionStorage.cp_pw` → verify with `/api/auth` → skip login screen if valid
 2. Login: POST to `/api/auth`, store password in `_sessionPassword` + `sessionStorage`
 3. Every save: POST to `/api/data` with `{ password, data: collectState() }`
-4. 30s polling: GET `/api/data`, call `applyState()` to merge remote changes
+4. 60s polling: GET `/api/data`, call `applyState()` to merge remote changes
 
 ## Dev Workflow
 

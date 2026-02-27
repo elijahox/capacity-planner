@@ -2,6 +2,12 @@
 // PERSISTENCE & AUTH
 // ================================================================
 
+const SAVE_DEBOUNCE_MS   = 1200;  // debounce delay before save fires
+const SAVE_RETRY_MS      = 3000;  // retry delay after failed save
+const SAVE_DEFER_MS      = 500;   // retry delay when save already in-flight
+const SAVE_INDICATOR_MS  = 2000;  // how long "✓ Saved" stays visible
+const POLL_INTERVAL_MS   = 60000; // remote state polling interval
+
 let _sessionPassword = null;
 let _saveTimer = null;
 let _pendingSave = false;
@@ -44,7 +50,7 @@ function scheduleSave() {
   _pendingSave = true;
   clearTimeout(_saveTimer);
   console.log('💾 Save scheduled...');
-  _saveTimer = setTimeout(persistSave, 1200);
+  _saveTimer = setTimeout(persistSave, SAVE_DEBOUNCE_MS);
 }
 
 async function persistSave() {
@@ -54,7 +60,7 @@ async function persistSave() {
     // Don't drop the save — reschedule so it runs after the current one finishes
     console.log('💾 Save deferred — another save in progress');
     clearTimeout(_saveTimer);
-    _saveTimer = setTimeout(persistSave, 500);
+    _saveTimer = setTimeout(persistSave, SAVE_DEFER_MS);
     return;
   }
   _isSaving = true;
@@ -74,7 +80,7 @@ async function persistSave() {
       console.error('❌ Save failed — server returned', res.status);
       // Retry after 3 seconds
       clearTimeout(_saveTimer);
-      _saveTimer = setTimeout(persistSave, 3000);
+      _saveTimer = setTimeout(persistSave, SAVE_RETRY_MS);
     }
   } catch(e) {
     console.error('❌ Save failed — network error:', e.message);
@@ -92,7 +98,7 @@ function showSaveIndicator() {
   el.textContent = '✓ Saved';
   el.style.opacity = '1';
   clearTimeout(el._fadeTimer);
-  el._fadeTimer = setTimeout(() => { el.style.opacity = '0'; }, 2000);
+  el._fadeTimer = setTimeout(() => { el.style.opacity = '0'; }, SAVE_INDICATOR_MS);
 }
 
 // ── Emergency save on tab close ──────────────────────────────────
@@ -202,5 +208,5 @@ async function loadAndInit() {
           });
         }
       } catch(e) {}
-    }, 60000);
+    }, POLL_INTERVAL_MS);
 }

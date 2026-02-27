@@ -54,10 +54,10 @@ function getSquadAllocation(squadId) {
 }
 
 function utilColor(pct) {
-  if (pct > 100) return '#c0392b';
-  if (pct >= 85)  return '#1e8449';
-  if (pct >= 50)  return '#d68910';
-  return '#b0ada5';
+  if (pct > 100) return '#ef4444'; // --red
+  if (pct >= 85)  return '#10b981'; // --green
+  if (pct >= 50)  return '#f59e0b'; // --amber
+  return '#94a3b8';                 // --text-dim
 }
 
 function utilClass(pct) {

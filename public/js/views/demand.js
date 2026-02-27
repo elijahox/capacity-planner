@@ -13,6 +13,10 @@ const DEMAND_PALETTE = [
 // Which initiatives are currently checked on
 const demandVisible = {};
 
+// Module-level refs for profile editor scroll (avoids window pollution)
+let _profileScrollFn = null;
+let _profileScrollToFn = null;
+
 function initDemandVisible() {
   // Default: first 5 initiatives with dates checked on
   let count = 0;
@@ -600,24 +604,45 @@ function openProfileEditor(initId) {
       draw();
     }
 
-    canvas.addEventListener('mousedown', e => { painting = true; applyPaint(e); });
-    canvas.addEventListener('mousemove', e => { if (painting) applyPaint(e); });
-    canvas.addEventListener('mouseup',   () => { painting = false; });
-    canvas.addEventListener('mouseleave',() => { painting = false; });
-    canvas.addEventListener('touchstart', e => { e.preventDefault(); painting = true; applyPaint(e); }, { passive: false });
-    canvas.addEventListener('touchmove',  e => { e.preventDefault(); if (painting) applyPaint(e); }, { passive: false });
-    canvas.addEventListener('touchend',   () => { painting = false; });
+    const onMouseDown  = e => { painting = true; applyPaint(e); };
+    const onMouseMove  = e => { if (painting) applyPaint(e); };
+    const onMouseUp    = () => { painting = false; };
+    const onMouseLeave = () => { painting = false; };
+    const onTouchStart = e => { e.preventDefault(); painting = true; applyPaint(e); };
+    const onTouchMove  = e => { e.preventDefault(); if (painting) applyPaint(e); };
+    const onTouchEnd   = () => { painting = false; };
 
-    // Expose scroll control
-    window._profileScroll = (delta) => {
+    canvas.addEventListener('mousedown',  onMouseDown);
+    canvas.addEventListener('mousemove',  onMouseMove);
+    canvas.addEventListener('mouseup',    onMouseUp);
+    canvas.addEventListener('mouseleave', onMouseLeave);
+    canvas.addEventListener('touchstart', onTouchStart, { passive: false });
+    canvas.addEventListener('touchmove',  onTouchMove,  { passive: false });
+    canvas.addEventListener('touchend',   onTouchEnd);
+
+    // Expose scroll control via module-level refs (avoid window pollution)
+    _profileScrollFn = (delta) => {
       scrollOffset = Math.max(0, Math.min(totalWeeks - VISIBLE_WEEKS, scrollOffset + delta));
       const slider = document.getElementById('profile-slider');
       if (slider) slider.value = scrollOffset;
       draw();
     };
-    window._profileScrollTo = (val) => {
+    _profileScrollToFn = (val) => {
       scrollOffset = Math.max(0, Math.min(totalWeeks - VISIBLE_WEEKS, val));
       draw();
+    };
+
+    // Register cleanup so listeners are removed when modal closes
+    _modalCleanup = () => {
+      canvas.removeEventListener('mousedown',  onMouseDown);
+      canvas.removeEventListener('mousemove',  onMouseMove);
+      canvas.removeEventListener('mouseup',    onMouseUp);
+      canvas.removeEventListener('mouseleave', onMouseLeave);
+      canvas.removeEventListener('touchstart', onTouchStart);
+      canvas.removeEventListener('touchmove',  onTouchMove);
+      canvas.removeEventListener('touchend',   onTouchEnd);
+      _profileScrollFn = null;
+      _profileScrollToFn = null;
     };
 
     draw();
@@ -625,8 +650,8 @@ function openProfileEditor(initId) {
   }, 40);
 }
 
-function profileScroll(delta)    { if (window._profileScroll)   window._profileScroll(delta); }
-function profileScrollTo(val)    { if (window._profileScrollTo) window._profileScrollTo(val); }
+function profileScroll(delta)    { if (_profileScrollFn)   _profileScrollFn(delta); }
+function profileScrollTo(val)    { if (_profileScrollToFn) _profileScrollToFn(val); }
 
 function applyProfilePreset_v2(initId, presetIdx) {
   const preset = PRESETS[presetIdx];

@@ -742,18 +742,18 @@ canvas { display: block; }
 <body>
 
 <!-- AUTH SCREEN -->
-<div id="auth-screen" style="display:none;position:fixed;inset:0;background:#f8fafc;z-index:1000;align-items:center;justify-content:center">
-  <div style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:40px 48px;width:360px;box-shadow:0 8px 40px rgba(0,0,0,0.08);text-align:center">
-    <div style="font-family:'Inter',sans-serif;font-size:22px;font-weight:700;margin-bottom:4px">capacity<span style="color:#3b82f6">.</span>planner</div>
-    <div style="font-size:12px;color:#64748b;margin-bottom:28px">C&S · Ecomm Experience · FY26</div>
-    <div style="font-size:13px;color:#0f172a;margin-bottom:12px;text-align:left;font-weight:600">Team password</div>
+<div id="auth-screen" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:1000;align-items:center;justify-content:center">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:40px 48px;width:360px;box-shadow:0 8px 40px rgba(0,0,0,0.08);text-align:center">
+    <div style="font-family:'Inter',sans-serif;font-size:22px;font-weight:700;margin-bottom:4px">capacity<span style="color:var(--accent)">.</span>planner</div>
+    <div style="font-size:12px;color:var(--text-muted);margin-bottom:28px">C&S · Ecomm Experience · FY26</div>
+    <div style="font-size:13px;color:var(--text);margin-bottom:12px;text-align:left;font-weight:600">Team password</div>
     <input id="auth-input" type="password" placeholder="Enter password"
-      style="width:100%;box-sizing:border-box;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:14px;font-family:'Inter',sans-serif;outline:none;margin-bottom:10px"
+      style="width:100%;box-sizing:border-box;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-family:'Inter',sans-serif;outline:none;margin-bottom:10px"
       onkeydown="if(event.key==='Enter')submitAuth()"
-      onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='#e2e8f0'">
-    <div id="auth-error" style="display:none;color:#ef4444;font-size:12px;margin-bottom:10px;text-align:left"></div>
+      onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+    <div id="auth-error" style="display:none;color:var(--red);font-size:12px;margin-bottom:10px;text-align:left"></div>
     <button id="auth-btn" onclick="submitAuth()"
-      style="width:100%;padding:11px;background:#3b82f6;color:#fff;border:none;border-radius:8px;font-size:14px;font-family:'Inter',sans-serif;font-weight:600;cursor:pointer">
+      style="width:100%;padding:11px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:14px;font-family:'Inter',sans-serif;font-weight:600;cursor:pointer">
       Enter
     </button>
   </div>
@@ -777,7 +777,7 @@ canvas { display: block; }
     <button class="nav-btn" onclick="showView('roadmap',this)">Roadmap</button>
     <button class="nav-btn" onclick="showView('demand',this)">Demand Chart</button>
     <button class="nav-btn" onclick="showView('financials',this)">Financials</button>
-    <div id="save-indicator" style="font-size:11px;color:#10b981;font-family:'JetBrains Mono',monospace;opacity:0;transition:opacity 0.4s;margin-left:8px;align-self:center">✓ Saved</div>
+    <div id="save-indicator" style="font-size:11px;color:var(--green);font-family:'JetBrains Mono',monospace;opacity:0;transition:opacity 0.4s;margin-left:8px;align-self:center">✓ Saved</div>
   </div>
 </div>
 
