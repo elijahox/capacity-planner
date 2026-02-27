@@ -43,26 +43,46 @@ function applyState(data) {
 function scheduleSave() {
   _pendingSave = true;
   clearTimeout(_saveTimer);
+  console.log('💾 Save scheduled...');
   _saveTimer = setTimeout(persistSave, 1200);
 }
 
 async function persistSave() {
   const pw = getPassword();
-  if (!pw) return;
-  if (_isSaving) return;
+  if (!pw) { console.warn('💾 Save skipped — no password'); return; }
+  if (_isSaving) {
+    // Don't drop the save — reschedule so it runs after the current one finishes
+    console.log('💾 Save deferred — another save in progress');
+    clearTimeout(_saveTimer);
+    _saveTimer = setTimeout(persistSave, 500);
+    return;
+  }
   _isSaving = true;
+  const state = collectState();
+  console.log('💾 Saving state...', 'people:', state.people?.length, 'squads:', state.squads?.length);
   try {
-    await fetch('/api/data', {
+    const res = await fetch('/api/data', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: pw, data: collectState() }),
+      body: JSON.stringify({ password: pw, data: state }),
     });
-    showSaveIndicator();
+    if (res.ok) {
+      console.log('✅ State saved successfully');
+      showSaveIndicator();
+      _pendingSave = false;
+    } else {
+      console.error('❌ Save failed — server returned', res.status);
+      // Retry after 3 seconds
+      clearTimeout(_saveTimer);
+      _saveTimer = setTimeout(persistSave, 3000);
+    }
   } catch(e) {
-    console.warn('Save failed:', e);
+    console.error('❌ Save failed — network error:', e.message);
+    // Retry after 3 seconds
+    clearTimeout(_saveTimer);
+    _saveTimer = setTimeout(persistSave, 3000);
   } finally {
     _isSaving = false;
-    _pendingSave = false;
   }
 }
 
@@ -74,6 +94,23 @@ function showSaveIndicator() {
   clearTimeout(el._fadeTimer);
   el._fadeTimer = setTimeout(() => { el.style.opacity = '0'; }, 2000);
 }
+
+// ── Emergency save on tab close ──────────────────────────────────
+// If there's a pending save when the user closes the tab, fire it
+// via sendBeacon so the browser completes it in the background.
+window.addEventListener('beforeunload', () => {
+  if (_pendingSave || _isSaving) {
+    const pw = getPassword();
+    if (pw) {
+      const blob = new Blob(
+        [JSON.stringify({ password: pw, data: collectState() })],
+        { type: 'application/json' }
+      );
+      navigator.sendBeacon('/api/data', blob);
+      console.log('💾 Emergency save via sendBeacon');
+    }
+  }
+});
 
 // ================================================================
 // AUTH SCREEN

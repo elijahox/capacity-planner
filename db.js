@@ -49,8 +49,14 @@ async function checkHealth() {
 }
 
 async function seedIfEmpty() {
-  console.log('=== DB INIT START ===');
+  console.log('🌱 === DB INIT START ===');
   const existing = await getData();
+
+  console.log('🌱 Checking seed...');
+  console.log('🌱 Existing data:',
+    existing ? 'FOUND' : 'NOT FOUND',
+    existing?.people?.length ?? 0, 'people,',
+    existing?.squads?.length ?? 0, 'squads');
 
   const isValidState = existing &&
     existing.squads &&
@@ -58,18 +64,16 @@ async function seedIfEmpty() {
     existing.people &&
     existing.people.length > 10;
 
-  console.log('Existing state:', isValidState ?
-    'VALID (squads: ' + existing.squads.length +
-    ', people: ' + existing.people.length + ')' :
-    'INVALID OR EMPTY — seeding');
-
-  if (!isValidState) {
+  if (isValidState) {
+    console.log('🌱 State is VALID — skipping seed');
+  } else {
+    console.log('🌱 State is INVALID OR EMPTY — seeding with defaults');
     await saveData(defaultState);
-    console.log('Seed complete. Squads:',
+    console.log('🌱 Seed complete. Squads:',
       defaultState.squads.length,
       'People:', defaultState.people.length);
   }
-  console.log('=== DB INIT COMPLETE ===');
+  console.log('🌱 === DB INIT COMPLETE ===');
 }
 
 async function getData() {

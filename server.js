@@ -79,8 +79,16 @@ app.post('/api/data', async (req, res) => {
   if (data === undefined || data === null || typeof data !== 'object' || Array.isArray(data)) {
     return res.status(400).json({ ok: false, error: 'data must be a plain object' });
   }
+  console.log('💾 State received, saving to DB...',
+    'people:', data.people?.length,
+    'squads:', data.squads?.length);
   try {
     const ok = await saveData(data);
+    if (ok) {
+      console.log('✅ State saved to DB successfully');
+    } else {
+      console.error('❌ saveData returned false');
+    }
     res.json({ ok });
   } catch (e) {
     console.error('POST /api/data error:', e.message);

@@ -87,3 +87,9 @@ Added `orgChartRerender()` helper that captures and restores both horizontal
 (`#orgchart-scroll.scrollLeft`) and vertical (`#content.scrollTop`) scroll
 positions around `renderContent()` calls. Prevents scroll jumping on drag-drop,
 squad creation, and rename operations.
+
+## 2026-02-27: Robust save pipeline with retry and response checking
+`persistSave()` now checks the HTTP response status — only shows "✓ Saved" on
+200, retries after 3s on failure. Saves deferred (not dropped) when another save
+is in-flight. `beforeunload` handler fires `navigator.sendBeacon` for emergency
+saves when closing the tab with pending changes.
