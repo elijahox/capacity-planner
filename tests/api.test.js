@@ -56,6 +56,7 @@ before(async () => {
 });
 
 after(async () => {
+  await deleteState(); // clean up test data so production DB isn't contaminated
   await new Promise((resolve) => { server.close(resolve); });
   await closeDb();
 });

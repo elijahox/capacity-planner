@@ -62,11 +62,22 @@ async function seedIfEmpty() {
     return;
   }
 
-  // No seed flag — this is a fresh database. Seed it.
-  console.log('🌱 Fresh database — seeding with defaults...');
-  console.log('🌱 Seed data: squads:', defaultState.squads.length,
-    'people:', defaultState.people.length);
-  await saveData(defaultState);
+  // No seed flag — seeding with defaults.
+  // Preserve any existing user-customised data (e.g. initiativeDates, workProfiles,
+  // tribeLeadership, squadOrder) that may have survived a partial state wipe.
+  const existing = await getData();
+  const mergedState = {
+    ...defaultState,
+    initiativeDates: existing?.initiativeDates || defaultState.initiativeDates,
+    workProfiles:    existing?.workProfiles    || defaultState.workProfiles,
+    tribeLeadership: existing?.tribeLeadership || defaultState.tribeLeadership,
+    squadOrder:      existing?.squadOrder      || defaultState.squadOrder,
+  };
+
+  console.log('🌱 Seeding with defaults (preserving user overrides if present)...');
+  console.log('🌱 Seed data: squads:', mergedState.squads.length,
+    'people:', mergedState.people.length);
+  await saveData(mergedState);
 
   // Write the seed flag so we never seed again
   await pool.query(

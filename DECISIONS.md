@@ -92,3 +92,9 @@ squad creation, and rename operations.
 200, retries after 3s on failure. Saves deferred (not dropped) when another save
 is in-flight. `beforeunload` handler fires `navigator.sendBeacon` for emergency
 saves when closing the tab with pending changes.
+
+## 2026-02-28: Test cleanup and seed merge
+Tests now call `deleteState()` in both `before()` and `after()` hooks so test data
+never persists in the database after a test run. `seedIfEmpty()` merges any surviving
+user data (initiativeDates, workProfiles, tribeLeadership, squadOrder) before
+seeding defaults, protecting customisations across re-seeds.
