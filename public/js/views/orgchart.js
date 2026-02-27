@@ -299,6 +299,13 @@ function renderOrgSquadCol(sq, tribe, minW) {
         ${allSquadPeople.length === 0
           ? `<div style="text-align:center;padding:14px 0;color:var(--text-dim);font-size:12px">No members</div>`
           : allSquadPeople.map(({ person, context }) => renderOrgPersonCard(person, context)).join('')}
+        ${allSquadPeople.length > 0 ? `<button onclick="openAddPersonModal('${sq.id}')"
+                style="width:100%;padding:7px 0;border:1.5px dashed var(--border-strong);
+                       border-radius:6px;background:none;cursor:pointer;
+                       color:var(--text-dim);font-size:12px;font-family:'Inter',sans-serif;
+                       transition:background 0.15s,color 0.15s"
+                onmouseenter="this.style.background='var(--bg2)';this.style.color='var(--text-muted)'"
+                onmouseleave="this.style.background='none';this.style.color='var(--text-dim)'">+ Add Person</button>` : ''}
       </div>
     </div>`;
 }
