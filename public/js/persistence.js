@@ -78,15 +78,13 @@ async function persistSave() {
       _pendingSave = false;
     } else {
       console.error('❌ Save failed — server returned', res.status);
-      // Retry after 3 seconds
       clearTimeout(_saveTimer);
       _saveTimer = setTimeout(persistSave, SAVE_RETRY_MS);
     }
   } catch(e) {
     console.error('❌ Save failed — network error:', e.message);
-    // Retry after 3 seconds
     clearTimeout(_saveTimer);
-    _saveTimer = setTimeout(persistSave, 3000);
+    _saveTimer = setTimeout(persistSave, SAVE_RETRY_MS);
   } finally {
     _isSaving = false;
   }
