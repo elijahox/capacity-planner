@@ -107,55 +107,52 @@ function renderOrgTribeGroup(tribe) {
   const c = tribe.color;
   const SQ_W = 192;
   const GAP = 12;
-  const NEW_W = 144;
 
   return `
     <div style="display:flex;flex-direction:column">
 
       <!-- Tribe header node -->
-      <div style="display:flex;gap:${GAP}px;margin-bottom:0">
-        <div style="flex:1;background:${c};color:#fff;
-                    border-radius:8px 8px 0 0;padding:10px 16px;
-                    display:flex;align-items:center;justify-content:space-between">
-          <span style="font-family:'Inter',sans-serif;font-weight:700;font-size:14px;letter-spacing:-0.3px">${tribe.name}</span>
+      <div style="background:${c};color:#fff;
+                  border-radius:8px 8px 0 0;padding:10px 16px;
+                  display:flex;align-items:center;justify-content:space-between;gap:12px">
+        <span style="font-family:'Inter',sans-serif;font-weight:700;font-size:14px;letter-spacing:-0.3px">${tribe.name}</span>
+        <div style="display:flex;align-items:center;gap:10px">
           <span style="font-size:11px;font-family:'JetBrains Mono',monospace;opacity:0.75">${tribeSquads.length} squads · ${tribeHC}p</span>
+          <span id="new-squad-${tribe.id}">
+            <button onclick="orgChartNewSquad('${tribe.id}')"
+                    style="background:none;border:1px solid rgba(255,255,255,0.4);color:#fff;
+                           font-size:11px;padding:3px 10px;border-radius:12px;cursor:pointer;
+                           font-family:'Inter',sans-serif;transition:background 0.15s"
+                    onmouseenter="this.style.background='rgba(255,255,255,0.15)'"
+                    onmouseleave="this.style.background='none'">＋ New Squad</button>
+          </span>
         </div>
-        <div style="width:${NEW_W}px;flex-shrink:0"></div>
       </div>
 
       <!-- Leadership row -->
-      ${renderOrgLeadershipRow(tribe, GAP, NEW_W)}
+      ${renderOrgLeadershipRow(tribe, GAP)}
 
-      <!-- Connector row: horizontal bar + vertical drops to each squad -->
+      <!-- Connector row: single horizontal line + vertical drops -->
       <div style="display:flex;gap:${GAP}px;margin-bottom:0">
         ${tribeSquads.map(() => `
-          <div style="flex:1;min-width:${SQ_W}px;height:20px;
+          <div style="flex:1;min-width:${SQ_W}px;height:16px;
                       border-top:2px solid ${c};
                       display:flex;justify-content:center;align-items:flex-start">
-            <div style="width:2px;height:18px;background:${c}"></div>
+            <div style="width:2px;height:14px;background:${c}"></div>
           </div>
         `).join('')}
-        <div style="width:${NEW_W}px;flex-shrink:0;height:20px"></div>
       </div>
 
       <!-- Squad columns row -->
       <div style="display:flex;gap:${GAP}px;align-items:flex-start">
         ${tribeSquads.map(sq => renderOrgSquadCol(sq, tribe, SQ_W)).join('')}
-
-        <!-- New Squad button/form -->
-        <div id="new-squad-${tribe.id}"
-             style="width:${NEW_W}px;flex-shrink:0;padding-top:10px;
-                    display:flex;justify-content:center">
-          <button class="btn btn-secondary btn-sm"
-                  onclick="orgChartNewSquad('${tribe.id}')">＋ New Squad</button>
-        </div>
       </div>
 
     </div>`;
 }
 
 // ── Leadership row ────────────────────────────────────────────
-function renderOrgLeadershipRow(tribe, GAP, NEW_W) {
+function renderOrgLeadershipRow(tribe, GAP) {
   const slots = tribeLeadership[tribe.id] || [null, null, null, null];
   const SLOT_COUNT = 4;
 
@@ -167,7 +164,7 @@ function renderOrgLeadershipRow(tribe, GAP, NEW_W) {
     }
     return `
       <div style="flex:1;min-width:130px;border:1.5px dashed var(--border-strong);
-                  border-radius:7px;padding:10px;min-height:54px;
+                  border-radius:7px;padding:6px 10px;min-height:40px;
                   display:flex;align-items:center;justify-content:center;
                   color:var(--text-dim);font-size:11px;font-family:'JetBrains Mono',monospace;
                   transition:background 0.15s,border-color 0.15s;cursor:default"
@@ -185,7 +182,7 @@ function renderOrgLeadershipRow(tribe, GAP, NEW_W) {
                 border-left:1px solid var(--border);
                 border-right:1px solid var(--border);
                 border-bottom:1px solid var(--border);
-                padding:10px 12px">
+                padding:8px 12px">
       <!-- Label -->
       <div style="flex-shrink:0;writing-mode:initial;padding-right:4px">
         <span style="font-size:10px;font-family:'JetBrains Mono',monospace;
@@ -195,18 +192,16 @@ function renderOrgLeadershipRow(tribe, GAP, NEW_W) {
       <div style="display:flex;gap:8px;flex:1">
         ${slotsHtml}
       </div>
-      <!-- Spacer to match new-squad col -->
-      <div style="width:${NEW_W}px;flex-shrink:0"></div>
     </div>`;
 }
 
 function renderOrgLeaderCard(p, tribeId, slotIdx) {
-  const shortType = { perm: 'Perm', contractor: 'Contractor', msp: 'MSP' }[p.type] || p.type;
+  const shortType = { perm: 'Perm', contractor: 'Ctr', msp: 'MSP' }[p.type] || p.type;
   let expiryHtml = '';
   if (p.type !== 'perm' && p.endDate) {
     const cls = getExpiryClass(p.endDate);
     const lbl = getExpiryLabel(p.endDate);
-    expiryHtml = `<div class="${cls}" style="font-size:11px;margin-top:4px;font-family:'JetBrains Mono',monospace">${lbl}</div>`;
+    expiryHtml = `<span class="${cls}" style="font-size:10px;font-family:'JetBrains Mono',monospace">${lbl}</span>`;
   }
   return `
     <div class="orgchart-person-card"
@@ -220,19 +215,19 @@ function renderOrgLeaderCard(p, tribeId, slotIdx) {
          ondrop="orgChartLeaderDrop(event,'${tribeId}',${slotIdx})"
          onclick="openPersonModal('${p.id}')"
          style="flex:1;min-width:130px;background:var(--bg);border:1px solid var(--border);
-                border-radius:7px;padding:9px 11px;user-select:none;position:relative">
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:4px;margin-bottom:1px">
-        <div>
-          <div style="font-weight:700;font-size:13px">${p.name}</div>
-          <div style="color:var(--text-muted);font-size:12px;margin-bottom:6px">${p.role}</div>
+                border-radius:7px;padding:6px 10px;user-select:none;position:relative">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:4px">
+        <div style="min-width:0;flex:1">
+          <div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.name}</div>
+          <div style="color:var(--text-muted);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.role}</div>
         </div>
         <button onclick="orgChartClearLeaderSlot(event,'${tribeId}',${slotIdx})"
                 style="background:none;border:none;cursor:pointer;color:var(--text-dim);
-                       font-size:13px;padding:0 2px;line-height:1;flex-shrink:0"
+                       font-size:12px;padding:0 2px;line-height:1;flex-shrink:0"
                 title="Remove from leadership">✕</button>
       </div>
-      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px">
-        <span class="badge ${getTypeClass(p.type)}">${shortType}</span>
+      <div style="display:flex;align-items:center;gap:4px;margin-top:3px">
+        <span class="badge ${getTypeClass(p.type)}" style="font-size:10px;padding:2px 6px">${shortType}</span>
         ${expiryHtml}
       </div>
     </div>`;
@@ -471,18 +466,22 @@ function orgChartNewSquad(tribeId) {
   const wrap = document.getElementById('new-squad-' + tribeId);
   if (!wrap) return;
   wrap.innerHTML = `
-    <div style="display:flex;flex-direction:column;gap:6px;width:100%">
-      <input class="form-input" id="new-sq-inp-${tribeId}"
+    <span style="display:inline-flex;align-items:center;gap:4px">
+      <input id="new-sq-inp-${tribeId}"
              placeholder="Squad name"
+             style="font-size:11px;padding:3px 8px;border:1px solid rgba(255,255,255,0.5);
+                    border-radius:4px;background:rgba(255,255,255,0.15);color:#fff;
+                    outline:none;width:110px;font-family:'Inter',sans-serif"
              onkeydown="if(event.key==='Enter')orgChartConfirmNewSquad('${tribeId}');
                         if(event.key==='Escape')orgChartRerender();" />
-      <div style="display:flex;gap:6px">
-        <button class="btn btn-primary btn-sm" style="flex:1"
-                onclick="orgChartConfirmNewSquad('${tribeId}')">Add</button>
-        <button class="btn btn-secondary btn-sm"
-                onclick="orgChartRerender()">✕</button>
-      </div>
-    </div>`;
+      <button onclick="orgChartConfirmNewSquad('${tribeId}')"
+              style="background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.4);
+                     color:#fff;font-size:11px;padding:3px 8px;border-radius:4px;cursor:pointer;
+                     font-family:'Inter',sans-serif">Add</button>
+      <button onclick="orgChartRerender()"
+              style="background:none;border:none;color:rgba(255,255,255,0.7);
+                     font-size:13px;cursor:pointer;padding:0 2px;line-height:1">✕</button>
+    </span>`;
   const inp = document.getElementById('new-sq-inp-' + tribeId);
   if (inp) { inp.focus(); }
 }
