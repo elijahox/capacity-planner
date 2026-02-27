@@ -12,6 +12,7 @@ let _sessionPassword = null;
 let _saveTimer = null;
 let _pendingSave = false;
 let _isSaving = false;
+let _initialized = false; // true only after API data has loaded — blocks saves before then
 
 function getPassword() { return _sessionPassword; }
 
@@ -29,24 +30,35 @@ function collectState() {
 
 function applyState(data) {
   if (!data) return;
-  if (data.squads)         squads         = data.squads;
-  if (data.initiatives)    initiatives    = data.initiatives;
-  if (data.people)         people         = data.people;
+  // Full replacement for arrays — DB data completely replaces defaults
+  if (data.squads)          squads          = data.squads;
+  if (data.initiatives)     initiatives     = data.initiatives;
+  if (data.people)          people          = data.people;
+  // Full replacement for objects — wipe defaults, use only DB data.
+  // Object.assign was merging, leaving stale default keys behind.
   if (data.initiativeDates) {
+    for (const k in initiativeDates) delete initiativeDates[k];
     Object.assign(initiativeDates, data.initiativeDates);
   }
   if (data.workProfiles) {
+    for (const k in workProfiles) delete workProfiles[k];
     Object.assign(workProfiles, data.workProfiles);
   }
   if (data.tribeLeadership) {
+    for (const k in tribeLeadership) delete tribeLeadership[k];
     Object.assign(tribeLeadership, data.tribeLeadership);
   }
   if (data.squadOrder) {
+    for (const k in squadOrder) delete squadOrder[k];
     Object.assign(squadOrder, data.squadOrder);
   }
 }
 
 function scheduleSave() {
+  if (!_initialized) {
+    console.warn('💾 Save blocked — app not yet initialized');
+    return;
+  }
   _pendingSave = true;
   clearTimeout(_saveTimer);
   console.log('💾 Save scheduled...');
@@ -103,6 +115,7 @@ function showSaveIndicator() {
 // If there's a pending save when the user closes the tab, fire it
 // via sendBeacon so the browser completes it in the background.
 window.addEventListener('beforeunload', () => {
+  if (!_initialized) return; // never save defaults to DB
   if (_pendingSave || _isSaving) {
     const pw = getPassword();
     if (pw) {
@@ -176,6 +189,8 @@ async function loadAndInit() {
   } catch(e) {
     console.warn('Could not load saved data, using defaults.');
   }
+  // NOW allow saves — data has been loaded (or we're using defaults intentionally)
+  _initialized = true;
   hideAuthScreen();
   renderSidebar();
   renderContent();

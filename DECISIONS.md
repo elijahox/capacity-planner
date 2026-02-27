@@ -98,3 +98,10 @@ Tests now call `deleteState()` in both `before()` and `after()` hooks so test da
 never persists in the database after a test run. `seedIfEmpty()` merges any surviving
 user data (initiativeDates, workProfiles, tribeLeadership, squadOrder) before
 seeding defaults, protecting customisations across re-seeds.
+
+## 2026-02-28: Initialization guard and full state replacement
+`applyState()` now clears all existing keys before merging DB data for object-type
+state (initiativeDates, workProfiles, tribeLeadership, squadOrder) — prevents stale
+default keys from persisting. An `_initialized` flag blocks `scheduleSave()` and
+`beforeunload` from firing before API data has loaded, preventing defaults from
+overwriting real data in the database.
