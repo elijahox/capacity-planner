@@ -49,31 +49,31 @@ async function checkHealth() {
 }
 
 async function seedIfEmpty() {
-  console.log('🌱 === DB INIT START ===');
-  const existing = await getData();
+  console.log('🌱 Checking if seed needed...');
 
-  console.log('🌱 Checking seed...');
-  console.log('🌱 Existing data:',
-    existing ? 'FOUND' : 'NOT FOUND',
-    existing?.people?.length ?? 0, 'people,',
-    existing?.squads?.length ?? 0, 'squads');
+  // Check for a dedicated seed flag — if present, this DB has been seeded before
+  // and we must NEVER overwrite user data regardless of what the state looks like.
+  const flagResult = await pool.query(
+    "SELECT value FROM store WHERE key = 'seeded'"
+  );
 
-  const isValidState = existing &&
-    existing.squads &&
-    existing.squads.length > 5 &&
-    existing.people &&
-    existing.people.length > 10;
-
-  if (isValidState) {
-    console.log('🌱 State is VALID — skipping seed');
-  } else {
-    console.log('🌱 State is INVALID OR EMPTY — seeding with defaults');
-    await saveData(defaultState);
-    console.log('🌱 Seed complete. Squads:',
-      defaultState.squads.length,
-      'People:', defaultState.people.length);
+  if (flagResult.rows.length > 0) {
+    console.log('🌱 Already seeded — skipping (flag found)');
+    return;
   }
-  console.log('🌱 === DB INIT COMPLETE ===');
+
+  // No seed flag — this is a fresh database. Seed it.
+  console.log('🌱 Fresh database — seeding with defaults...');
+  console.log('🌱 Seed data: squads:', defaultState.squads.length,
+    'people:', defaultState.people.length);
+  await saveData(defaultState);
+
+  // Write the seed flag so we never seed again
+  await pool.query(
+    "INSERT INTO store (key, value) VALUES ('seeded', 'true') ON CONFLICT (key) DO NOTHING"
+  );
+
+  console.log('🌱 Seed complete and flag written');
 }
 
 async function getData() {
@@ -94,16 +94,18 @@ async function saveData(obj) {
        ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`,
       [JSON.stringify(obj)]
     );
+    console.log('✅ DB write complete');
     return true;
   } catch (e) {
-    console.error('Failed to save state:', e.message);
+    console.error('❌ Failed to save state:', e.message);
     return false;
   }
 }
 
 // Used by tests to reset state between runs
+// Also clears the 'seeded' flag so initDB() re-seeds on next test run
 async function deleteState() {
-  await pool.query(`DELETE FROM store WHERE key = 'state'`);
+  await pool.query(`DELETE FROM store WHERE key IN ('state', 'seeded')`);
 }
 
 async function close() {

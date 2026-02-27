@@ -62,11 +62,11 @@ button is clicked, reset to `false` at the top of the render function.
 This preserves the selected filter across re-renders while naturally
 resetting to the default when navigating away and back.
 
-## 2026-02-27: Database seeding on empty startup
-`seed.js` exports the baseline state (squads, initiatives, people,
-initiativeDates). `db.js` calls `seedIfEmpty()` after table creation —
-if no state row exists, it writes the default. Fresh databases self-seed
-on first boot; existing databases are untouched.
+## 2026-02-27: Database seeding with dedicated flag
+`seedIfEmpty()` uses a dedicated `seeded` flag row in the `store` table
+rather than validating existing data. First boot: seeds defaults + writes
+flag. All subsequent boots: sees flag and skips entirely — never overwrites
+user data regardless of state shape. To re-seed: `DELETE FROM store WHERE key = 'seeded'`.
 
 ## 2026-02-27: Database backup strategy
 Railway Postgres paid plan includes automatic daily backups with 7-day
