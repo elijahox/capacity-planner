@@ -101,12 +101,13 @@ describe('GET /api/data', () => {
 
 describe('POST /api/data', () => {
   const testData = {
-    squads: [{ id: 's1', name: 'Test Squad', tribeId: 't1' }],
+    squads: [{ id: 'test-s1', name: 'TEST SQUAD ONLY', tribeId: 'test' }],
+    people: [],
     initiatives: [],
-    people: [{ id: 'p1', name: 'Alice', squadId: 's1' }],
     initiativeDates: {},
     workProfiles: {},
-    scenarios: [],
+    tribeLeadership: {},
+    squadOrder: {},
   };
 
   test('returns 401 with wrong password', async () => {
