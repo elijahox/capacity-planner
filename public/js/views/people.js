@@ -5,6 +5,32 @@
 let _peopleFilter = 'all';
 let _peopleFilterActive = false;
 
+// Scroll-preserving re-render — prevents org chart scroll reset on modal save
+function _peopleRerender() {
+  const scroller = document.getElementById('orgchart-scroll');
+  const scrollLeft = scroller ? scroller.scrollLeft : 0;
+  const scrollTop = window.scrollY;
+  renderContent();
+  requestAnimationFrame(() => {
+    const newScroller = document.getElementById('orgchart-scroll');
+    if (newScroller) newScroller.scrollLeft = scrollLeft;
+    window.scrollTo(0, scrollTop);
+  });
+}
+
+// Enter-key-to-save setup for person modals
+function _setupModalEnterKey(saveBtnId) {
+  const handler = (e) => {
+    if (e.key === 'Enter' && document.activeElement?.tagName !== 'TEXTAREA') {
+      e.preventDefault();
+      const btn = document.getElementById(saveBtnId);
+      if (btn) btn.click();
+    }
+  };
+  document.addEventListener('keydown', handler);
+  _modalCleanup = () => document.removeEventListener('keydown', handler);
+}
+
 function setPeopleFilter(v) {
   _peopleFilter = v;
   _peopleFilterActive = true;
@@ -175,8 +201,9 @@ function openPersonModal(id) {
     <div class="modal-footer">
       <button class="btn btn-danger" onclick="deletePerson('${p.id}')">Remove Person</button>
       <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-primary" onclick="savePerson('${p.id}')">Save Changes</button>
+      <button class="btn btn-primary" id="pm-save-btn" onclick="savePerson('${p.id}')">Save Changes</button>
     </div>`);
+  _setupModalEnterKey('pm-save-btn');
 }
 
 function savePerson(id) {
@@ -203,7 +230,7 @@ function savePerson(id) {
   p.comments = document.getElementById('pm-comments').value;
   closeModal();
   scheduleSave();
-  renderContent();
+  _peopleRerender();
   renderSidebar();
 }
 
@@ -213,7 +240,7 @@ function deletePerson(id) {
   people = people.filter(p => p.id !== id);
   closeModal();
   scheduleSave();
-  renderContent();
+  _peopleRerender();
   renderSidebar();
 }
 
@@ -284,8 +311,9 @@ function openAddPersonModal(squadId) {
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-primary" onclick="addPerson()">Add to Register</button>
+      <button class="btn btn-primary" id="np-save-btn" onclick="addPerson()">Add to Register</button>
     </div>`);
+  _setupModalEnterKey('np-save-btn');
 }
 
 function addPerson() {
@@ -311,7 +339,7 @@ function addPerson() {
   };
   people.push(newPerson);
   closeModal();
-  renderContent();
+  _peopleRerender();
   renderSidebar();
 }
 

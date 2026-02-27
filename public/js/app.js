@@ -113,6 +113,8 @@ function renderContent() {
 
 // ── Modals ───────────────────────────────────────────────────────
 
+let _modalCleanup = null;
+
 function openModal(html) {
   document.getElementById('modal-inner').innerHTML = html;
   document.getElementById('modal-overlay').style.display = 'flex';
@@ -120,6 +122,7 @@ function openModal(html) {
 
 function closeModal() {
   document.getElementById('modal-overlay').style.display = 'none';
+  if (_modalCleanup) { _modalCleanup(); _modalCleanup = null; }
 }
 
 function closeModalOnOverlay(e) {
