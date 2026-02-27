@@ -175,6 +175,7 @@ async function loadAndInit() {
   hideAuthScreen();
   renderSidebar();
   renderContent();
+  if (typeof _highlightActiveNav === 'function') _highlightActiveNav();
 
   // Poll every 60 seconds and merge changes from other users
   // Clear-and-reset: prevents stale intervals stacking on re-auth

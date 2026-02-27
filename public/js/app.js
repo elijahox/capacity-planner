@@ -2,8 +2,8 @@
 // APP — view router, sidebar, modals, boot
 // ================================================================
 
-let currentView = 'overview';
-let selectedSquad = null;
+let currentView = localStorage.getItem('cp_active_view') || 'overview';
+let selectedSquad = localStorage.getItem('cp_active_squad') || null;
 let collapsedTribes = {};
 let _sidebarCollapsed = localStorage.getItem('cp_sidebar_collapsed') === 'true';
 
@@ -75,6 +75,8 @@ function toggleTribe(id) { collapsedTribes[id] = !collapsedTribes[id]; renderSid
 function goToSquad(id) {
   selectedSquad = id;
   currentView = 'squads';
+  localStorage.setItem('cp_active_view', 'squads');
+  localStorage.setItem('cp_active_squad', id);
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.nav-btn')[1].classList.add('active');
   renderContent();
@@ -85,10 +87,21 @@ function goToSquad(id) {
 
 function showView(view, btn) {
   currentView = view;
+  localStorage.setItem('cp_active_view', view);
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
   renderContent();
   renderSidebar();
+}
+
+// Highlight the correct nav button for the active view (used on boot after loadAndInit)
+function _highlightActiveNav() {
+  const viewOrder = ['overview', 'squads', 'orgchart', 'people', 'contractors',
+                     'initiatives', 'pipeline', 'roadmap', 'demand', 'financials'];
+  const navBtns = document.querySelectorAll('.nav-btn');
+  navBtns.forEach(b => b.classList.remove('active'));
+  const idx = viewOrder.indexOf(currentView);
+  if (idx !== -1 && navBtns[idx]) navBtns[idx].classList.add('active');
 }
 
 function renderContent() {

@@ -285,7 +285,7 @@ function renderOrgSquadCol(sq, tribe, minW) {
 
       <!-- Squad header -->
       <div style="padding:10px 12px;border-bottom:1px solid var(--border);background:var(--surface2)">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+        <div style="display:flex;align-items:center;gap:6px">
           <div style="flex:1;display:flex;align-items:center;gap:4px;min-width:0">
             <div class="orgchart-squad-name"
                  id="squad-name-${sq.id}"
@@ -303,8 +303,6 @@ function renderOrgSquadCol(sq, tribe, minW) {
           <span class="badge badge-grey">${hc}p</span>
           <span class="badge ${utilClass(util)}">${util}%</span>
         </div>
-        <button class="btn btn-secondary btn-sm" style="width:100%"
-                onclick="openAddPersonModal('${sq.id}')">+ Add Person</button>
       </div>
 
       <!-- Person cards (drop zone) -->
