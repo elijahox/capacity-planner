@@ -4,6 +4,8 @@
 
 let _sessionPassword = null;
 let _saveTimer = null;
+let _pendingSave = false;
+let _isSaving = false;
 
 function getPassword() { return _sessionPassword; }
 
@@ -39,6 +41,7 @@ function applyState(data) {
 }
 
 function scheduleSave() {
+  _pendingSave = true;
   clearTimeout(_saveTimer);
   _saveTimer = setTimeout(persistSave, 1200);
 }
@@ -46,6 +49,8 @@ function scheduleSave() {
 async function persistSave() {
   const pw = getPassword();
   if (!pw) return;
+  if (_isSaving) return;
+  _isSaving = true;
   try {
     await fetch('/api/data', {
       method: 'POST',
@@ -55,6 +60,9 @@ async function persistSave() {
     showSaveIndicator();
   } catch(e) {
     console.warn('Save failed:', e);
+  } finally {
+    _isSaving = false;
+    _pendingSave = false;
   }
 }
 
@@ -131,14 +139,30 @@ async function loadAndInit() {
   renderSidebar();
   renderContent();
 
-  // Poll every 30 seconds and merge changes from other users
+  // Poll every 60 seconds and merge changes from other users
   if (!window._pollInterval) {
     window._pollInterval = setInterval(async () => {
+      if (_pendingSave || _isSaving) {
+        console.log('Poll skipped — save in progress');
+        return;
+      }
       try {
         const r = await fetch('/api/data');
         const j = await r.json();
-        if (j.data) { applyState(j.data); renderContent(); renderSidebar(); }
+        if (j.data) {
+          const orgChart = document.getElementById('orgchart-scroll');
+          const scrollLeft = orgChart ? orgChart.scrollLeft : 0;
+          const scrollTop = window.scrollY;
+          applyState(j.data);
+          renderContent();
+          renderSidebar();
+          requestAnimationFrame(() => {
+            const newOrgChart = document.getElementById('orgchart-scroll');
+            if (newOrgChart) newOrgChart.scrollLeft = scrollLeft;
+            window.scrollTo(0, scrollTop);
+          });
+        }
       } catch(e) {}
-    }, 30000);
+    }, 60000);
   }
 }
