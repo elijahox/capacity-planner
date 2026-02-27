@@ -18,18 +18,19 @@ let _orgMouseY = 0;
 
 // ── Scroll-preserving re-render ──────────────────────────────
 // renderContent() destroys the DOM, resetting scroll position.
-// This wrapper captures and restores both horizontal (orgchart-scroll)
-// and vertical (#content) scroll offsets around the re-render.
+// This wrapper captures scroll offsets, re-renders, then uses
+// requestAnimationFrame to restore them after the browser has
+// laid out the new DOM.
 function orgChartRerender() {
-  const contentEl = document.getElementById('content');
-  const scroller = document.getElementById('orgchart-scroll');
-  const scrollLeft = scroller ? scroller.scrollLeft : 0;
-  const scrollTop = contentEl ? contentEl.scrollTop : 0;
+  const container = document.getElementById('orgchart-scroll');
+  const scrollLeft = container ? container.scrollLeft : 0;
+  const scrollTop = window.scrollY;
   renderContent();
-  const newScroller = document.getElementById('orgchart-scroll');
-  const newContentEl = document.getElementById('content');
-  if (newScroller) newScroller.scrollLeft = scrollLeft;
-  if (newContentEl) newContentEl.scrollTop = scrollTop;
+  requestAnimationFrame(() => {
+    const newContainer = document.getElementById('orgchart-scroll');
+    if (newContainer) newContainer.scrollLeft = scrollLeft;
+    window.scrollTo(0, scrollTop);
+  });
 }
 
 function _orgTrackMouse(e) {
@@ -238,9 +239,14 @@ function renderOrgSquadCol(sq, tribe, minW) {
   const { total: util } = getSquadAllocation(sq.id);
   const c = tribe.color;
 
+  // Build exclusion set: anyone in a leadership slot should NOT appear in squad columns
+  const leadershipIds = new Set(
+    Object.values(tribeLeadership).flat().filter(Boolean)
+  );
+
   // Gather primary + secondary members, tag each with context
-  const primaryPeople = people.filter(p => p.squad === sq.id && p.status === 'active');
-  const secondaryPeople = people.filter(p => p.secondarySquad === sq.id && p.squad !== sq.id && p.status === 'active');
+  const primaryPeople = people.filter(p => p.squad === sq.id && p.status === 'active' && !leadershipIds.has(p.id));
+  const secondaryPeople = people.filter(p => p.secondarySquad === sq.id && p.squad !== sq.id && p.status === 'active' && !leadershipIds.has(p.id));
   let allSquadPeople = [
     ...primaryPeople.map(p => ({ person: p, context: 'primary' })),
     ...secondaryPeople.map(p => ({ person: p, context: 'secondary' })),
