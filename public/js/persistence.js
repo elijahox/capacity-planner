@@ -38,9 +38,13 @@ function applyState(data) {
     // Defensive migration: ensure every initiative has estimatedRoles
     for (const init of initiatives) {
       if (!init.estimatedRoles) init.estimatedRoles = [];
-      // Ensure every role estimate has a type field
+      // Ensure every role estimate has all fields
       for (const role of init.estimatedRoles) {
         if (!role.type) role.type = 'contractor';
+        if (role.allocation === undefined) role.allocation = 100;
+        if (role.inBudget === undefined) role.inBudget = true;
+        if (role.personId === undefined) role.personId = null;
+        if (role.homeSquad === undefined) role.homeSquad = null;
       }
     }
   }
