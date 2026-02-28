@@ -531,6 +531,7 @@ function openCsvImportModal() {
             <tr><td>End Date</td><td>endDate → YYYY-MM-DD</td></tr>
             <tr><td>Next Action</td><td>nextAction</td></tr>
             <tr><td>Action Status</td><td>actionStatus</td></tr>
+            <tr><td>Status</td><td>status — Active (default) or Inactive</td></tr>
             <tr><td>Comments</td><td>comments</td></tr>
           </tbody>
         </table>
@@ -605,7 +606,7 @@ function importPeopleFromCsv(csvText) {
       agency:       row['Agency']        || null,
       startDate:    parseCsvDate(row['Start Date']),
       endDate:      parseCsvDate(row['End Date']),
-      status:       'active',
+      status:       (row['Status'] || '').trim().toLowerCase() === 'inactive' ? 'inactive' : 'active',
       nextAction:   row['Next Action']   || null,
       actionStatus: row['Action Status'] || null,
       comments:     row['Comments']      || '',
