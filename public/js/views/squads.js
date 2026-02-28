@@ -24,7 +24,7 @@ function renderSquads() {
   if (!sq) return tabBar;
   const tribe = TRIBES.find(t => t.id === sq.tribe);
   const { total, breakdown } = getSquadAllocation(sq.id);
-  const sqPeople = people.filter(p => (p.squad === sq.id || p.secondarySquad === sq.id) && p.status === 'active');
+  const sqPeople = people.filter(p => (p.squad === sq.id || p.secondarySquad === sq.id) && p.status === 'active' && !p.isVacant);
   const hc = getEffectiveSquadSize(sq.id);
   const committed = getCommittedHeadcount(sq.id);
   const rag = getSquadRAG(sq.id);

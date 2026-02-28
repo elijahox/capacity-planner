@@ -756,6 +756,22 @@ canvas { display: block; }
 }
 .orgchart-lane-label:last-child { border-bottom: none; }
 
+/* ---- VACANCY ---- */
+.vacant-card {
+  background: repeating-linear-gradient(
+    45deg, transparent, transparent 6px,
+    rgba(148,163,184,0.08) 6px, rgba(148,163,184,0.08) 12px
+  ) !important;
+  border: 1.5px dashed var(--text-dim) !important;
+}
+.vacant-card .org-card-name { font-style: italic; color: var(--text-muted); }
+.badge-vacancy-approved { background: color-mix(in srgb, var(--green) 15%, transparent); color: var(--green); }
+.badge-vacancy-pending  { background: color-mix(in srgb, var(--amber) 15%, transparent); color: var(--amber); }
+.vacancy-toggle { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.vacancy-toggle input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; }
+.vacancy-toggle label { font-size: 13px; font-weight: 600; cursor: pointer; }
+.vacancy-fields { margin-bottom: 8px; }
+
 /* ---- RESPONSIVE ---- */
 @media (max-width: 900px) {
   .sidebar { width: 52px; }

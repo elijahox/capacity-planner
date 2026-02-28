@@ -4,7 +4,7 @@
 
 function renderOverview() {
   const totalHC = squads.reduce((a, s) => a + getEffectiveSquadSize(s.id), 0);
-  const totalContractors = people.filter(p => p.type !== 'perm' && p.status === 'active').length;
+  const totalContractors = people.filter(p => p.type !== 'perm' && p.status === 'active' && !p.isVacant).length;
   const overAlloc = squads.filter(s => getSquadAllocation(s.id).total > 100).length;
   const expiring30 = getContractorsExpiringSoon(30).length;
   const avgUtil = squads.reduce((a, s) => a + getSquadAllocation(s.id).total, 0) / squads.length;
@@ -52,7 +52,7 @@ function renderOverview() {
     </div>`;
 
   // Alerts
-  const expired = people.filter(p => p.type !== 'perm' && p.status === 'active' && daysUntil(p.endDate) < 0);
+  const expired = people.filter(p => p.type !== 'perm' && p.status === 'active' && !p.isVacant && daysUntil(p.endDate) < 0);
   const urgent14 = getContractorsExpiringSoon(14);
   if (expired.length) html += `<div class="alert alert-red"><div class="alert-icon">🚨</div><div><strong>${expired.length} contractor(s) have expired contracts</strong> — ${expired.map(p=>p.name).join(', ')}. Action required immediately.</div></div>`;
   if (urgent14.length) html += `<div class="alert alert-amber"><div class="alert-icon">⚠️</div><div><strong>${urgent14.length} contractor(s) expire within 14 days</strong> — ${urgent14.map(p=>p.name).join(', ')}. Review and decide on extension or roll-off.</div></div>`;
@@ -76,7 +76,7 @@ function renderOverview() {
       const hc = getEffectiveSquadSize(sq.id);
       const committed = getCommittedHeadcount(sq.id);
       const rag = getSquadRAG(sq.id);
-      const sqPeople = people.filter(p => p.squad === sq.id && p.status === 'active');
+      const sqPeople = people.filter(p => p.squad === sq.id && p.status === 'active' && !p.isVacant);
       const contractors = sqPeople.filter(p => p.type !== 'perm').length;
       html += `<div class="overview-card" onclick="goToSquad('${sq.id}')">
         <div class="tribe-stripe" style="background:${tribe.color}"></div>

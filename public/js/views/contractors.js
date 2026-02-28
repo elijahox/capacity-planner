@@ -3,7 +3,7 @@
 // ================================================================
 
 function renderContractorWatch() {
-  const active = people.filter(p => p.type !== 'perm' && p.status === 'active');
+  const active = people.filter(p => p.type !== 'perm' && p.status === 'active' && !p.isVacant);
   const expired = active.filter(p => daysUntil(p.endDate) < 0);
   const within14 = active.filter(p => daysUntil(p.endDate) >= 0 && daysUntil(p.endDate) <= 14);
   const within30 = active.filter(p => daysUntil(p.endDate) > 14 && daysUntil(p.endDate) <= 30);

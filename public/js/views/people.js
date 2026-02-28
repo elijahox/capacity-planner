@@ -37,14 +37,28 @@ function setPeopleFilter(v) {
   renderContent();
 }
 
+function toggleVacantFields(prefix) {
+  const checked = document.getElementById(prefix + '-vacant').checked;
+  document.getElementById(prefix + '-vacancy-fields').style.display = checked ? 'block' : 'none';
+  const nameInput = document.getElementById(prefix + '-name');
+  if (nameInput) nameInput.placeholder = checked ? 'e.g. Senior Engineer — TBH' : (prefix === 'np' ? 'Full name' : '');
+}
+
 function renderPeople() {
   if (!_peopleFilterActive) _peopleFilter = 'all';
   _peopleFilterActive = false;
   const filter = _peopleFilter;
 
-  let filtered = people.filter(p => p.status === 'active');
-  if (filter === 'perm')    filtered = filtered.filter(p => p.type === 'perm');
-  if (filter === 'nonperm') filtered = filtered.filter(p => p.type === 'contractor' || p.type === 'msp');
+  let filtered;
+  if (filter === 'vacant') {
+    filtered = people.filter(p => p.isVacant);
+  } else if (filter === 'inactive') {
+    filtered = people.filter(p => p.status === 'inactive');
+  } else {
+    filtered = people.filter(p => p.status === 'active');
+    if (filter === 'perm')    filtered = filtered.filter(p => p.type === 'perm');
+    if (filter === 'nonperm') filtered = filtered.filter(p => p.type === 'contractor' || p.type === 'msp');
+  }
 
   const btnStyle = 'border-radius:999px';
   return `
@@ -58,6 +72,7 @@ function renderPeople() {
           <button class="btn btn-sm ${filter==='all'    ? 'btn-primary' : 'btn-secondary'}" style="${btnStyle}" onclick="setPeopleFilter('all')">All</button>
           <button class="btn btn-sm ${filter==='perm'   ? 'btn-primary' : 'btn-secondary'}" style="${btnStyle}" onclick="setPeopleFilter('perm')">Permanent</button>
           <button class="btn btn-sm ${filter==='nonperm'? 'btn-primary' : 'btn-secondary'}" style="${btnStyle}" onclick="setPeopleFilter('nonperm')">Contractors &amp; MSP</button>
+          <button class="btn btn-sm ${filter==='vacant' ? 'btn-primary' : 'btn-secondary'}" style="${btnStyle}" onclick="setPeopleFilter('vacant')">Vacant</button>
         </div>
         <button class="btn btn-secondary btn-sm" onclick="openCsvImportModal()">↑ Import CSV</button>
         <button class="btn btn-primary btn-sm" onclick="openAddPersonModal(null)">+ Add Person</button>
@@ -65,19 +80,21 @@ function renderPeople() {
     </div>
     <div class="card">
       <table class="data-table">
-        <thead><tr><th>Name</th><th>Role</th><th>Squad</th><th>2nd Squad</th><th>Tribe</th><th>Type</th><th>Day Rate</th><th>Agency</th><th>End Date</th><th>Next Action</th><th>Action Status</th></tr></thead>
+        <thead><tr><th>Name</th><th>Role</th><th>Squad</th><th>2nd Squad</th><th>Tribe</th><th>Type</th><th>Vacancy</th><th>Day Rate</th><th>Agency</th><th>End Date</th><th>Next Action</th><th>Action Status</th></tr></thead>
         <tbody>
           ${filtered.map(p => {
             const sq = squads.find(s => s.id === p.squad);
             const secSq = p.secondarySquad ? squads.find(s => s.id === p.secondarySquad) : null;
             const tribe = sq ? TRIBES.find(t => t.id === sq.tribe) : null;
+            const displayName = (p.isVacant && !p.name) ? `<em style="color:var(--text-muted)">${p.role || 'Vacant'}</em>` : p.name;
             return `<tr onclick="openPersonModal('${p.id}')">
-              <td><strong>${p.name}</strong></td>
+              <td><strong>${displayName}</strong></td>
               <td style="color:var(--text-muted)">${p.role}</td>
               <td>${sq ? sq.name : '—'}</td>
               <td>${secSq ? secSq.name : '—'}</td>
               <td>${tribe ? `<span style="display:flex;align-items:center;gap:5px"><div style="width:7px;height:7px;border-radius:50%;background:${tribe.color}"></div>${tribe.name}</span>` : '—'}</td>
               <td><span class="badge ${getTypeClass(p.type)}">${getTypeLabel(p.type)}</span></td>
+              <td>${p.isVacant ? `<span class="badge ${p.vacancyStatus === 'approved' ? 'badge-vacancy-approved' : 'badge-vacancy-pending'}">${p.vacancyStatus === 'approved' ? 'Vacant ✓' : 'Vacant ⏳'}</span>` : '—'}</td>
               <td style="font-family:'JetBrains Mono',monospace">${fmtCurrency(p.dayRate)}</td>
               <td>${p.agency || '—'}</td>
               <td class="${p.endDate ? getExpiryClass(p.endDate) : ''}">${p.endDate ? getExpiryLabel(p.endDate) : '—'}</td>
@@ -119,10 +136,29 @@ function openPersonModal(id) {
         <span class="badge badge-grey">${p.role}</span>
         ${sq ? `<span class="badge badge-grey">${sq.name}</span>` : ''}
       </div>
+      <div class="vacancy-toggle">
+        <input type="checkbox" id="pm-vacant" ${p.isVacant ? 'checked' : ''} onchange="toggleVacantFields('pm')">
+        <label for="pm-vacant">Vacant Role</label>
+      </div>
+      <div class="vacancy-fields" id="pm-vacancy-fields" style="display:${p.isVacant ? 'block' : 'none'}">
+        <div class="form-grid">
+          <div class="form-group">
+            <div class="form-label">Vacancy Status</div>
+            <select class="form-select" id="pm-vacancy-status">
+              <option value="pending" ${p.vacancyStatus !== 'approved' ? 'selected' : ''}>Pending</option>
+              <option value="approved" ${p.vacancyStatus === 'approved' ? 'selected' : ''}>Approved</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <div class="form-label">Project / Initiative</div>
+            <input class="form-input" id="pm-vacancy-project" value="${p.vacancyProject || ''}" />
+          </div>
+        </div>
+      </div>
       <div class="form-grid">
         <div class="form-group">
           <div class="form-label">Name</div>
-          <input class="form-input" id="pm-name" value="${p.name}" />
+          <input class="form-input" id="pm-name" value="${p.name}" placeholder="${p.isVacant ? 'e.g. Senior Engineer — TBH' : ''}" />
         </div>
         <div class="form-group">
           <div class="form-label">Role</div>
@@ -228,6 +264,9 @@ function savePerson(id) {
   p.nextAction = document.getElementById('pm-action').value || null;
   p.actionStatus = document.getElementById('pm-actstatus').value || null;
   p.comments = document.getElementById('pm-comments').value;
+  p.isVacant = document.getElementById('pm-vacant').checked;
+  p.vacancyStatus = p.isVacant ? document.getElementById('pm-vacancy-status').value : null;
+  p.vacancyProject = p.isVacant ? (document.getElementById('pm-vacancy-project').value || null) : null;
   closeModal();
   scheduleSave();
   _peopleRerender();
@@ -251,6 +290,25 @@ function openAddPersonModal(squadId) {
       <button class="modal-close" onclick="closeModal()">×</button>
     </div>
     <div class="modal-body">
+      <div class="vacancy-toggle">
+        <input type="checkbox" id="np-vacant" onchange="toggleVacantFields('np')">
+        <label for="np-vacant">Vacant Role</label>
+      </div>
+      <div class="vacancy-fields" id="np-vacancy-fields" style="display:none">
+        <div class="form-grid">
+          <div class="form-group">
+            <div class="form-label">Vacancy Status</div>
+            <select class="form-select" id="np-vacancy-status">
+              <option value="pending">Pending</option>
+              <option value="approved">Approved</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <div class="form-label">Project / Initiative</div>
+            <input class="form-input" id="np-vacancy-project" />
+          </div>
+        </div>
+      </div>
       <div class="form-grid">
         <div class="form-group">
           <div class="form-label">Name</div>
@@ -318,7 +376,8 @@ function openAddPersonModal(squadId) {
 
 function addPerson() {
   const name = document.getElementById('np-name').value.trim();
-  if (!name) { alert('Name is required'); return; }
+  const isVacant = document.getElementById('np-vacant').checked;
+  if (!isVacant && !name) { alert('Name is required'); return; }
   const npSquad = document.getElementById('np-squad').value;
   const npSec = document.getElementById('np-squad2').value || null;
   const newPerson = {
@@ -336,6 +395,9 @@ function addPerson() {
     nextAction: document.getElementById('np-action').value || null,
     actionStatus: null,
     comments: '',
+    isVacant: isVacant,
+    vacancyStatus: isVacant ? document.getElementById('np-vacancy-status').value : null,
+    vacancyProject: isVacant ? (document.getElementById('np-vacancy-project').value || null) : null,
   };
   people.push(newPerson);
   closeModal();

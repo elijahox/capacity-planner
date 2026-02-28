@@ -58,7 +58,7 @@ function getDiscipline(role) {
 function getSquadDisciplineCounts(squadId) {
   const counts = { engineering: 0, qe: 0, product: 0, delivery: 0, other: 0 };
   people.forEach(p => {
-    if (p.status !== 'active') return;
+    if (p.status !== 'active' || p.isVacant) return;
     let weight = 0;
     if (p.squad === squadId) weight = p.secondarySquad ? 0.5 : 1;
     else if (p.secondarySquad === squadId) weight = 0.5;
@@ -67,6 +67,18 @@ function getSquadDisciplineCounts(squadId) {
     counts[discipline] += weight;
   });
   return counts;
+}
+
+function getSquadVacancies(squadId) {
+  let total = 0, approved = 0, pending = 0;
+  people.forEach(p => {
+    if (p.status !== 'active' || !p.isVacant) return;
+    if (p.squad !== squadId && p.secondarySquad !== squadId) return;
+    total++;
+    if (p.vacancyStatus === 'approved') approved++;
+    else pending++;
+  });
+  return { total, approved, pending };
 }
 
 function today() { return new Date(); }
@@ -92,7 +104,7 @@ function fmtCurrency(n) {
 function getSquadHeadcount(squadId) {
   let count = 0;
   people.forEach(p => {
-    if (p.status !== 'active') return;
+    if (p.status !== 'active' || p.isVacant) return;
     if (p.squad === squadId) count += (p.secondarySquad ? 0.5 : 1);
     else if (p.secondarySquad === squadId) count += 0.5;
   });
@@ -238,11 +250,11 @@ function getActionClass(a) {
 const SEG_COLORS = ['#1a5276','#1e8449','#6c3483','#c17f24','#c0392b','#148f77','#7d3c98','#d35400','#1a5276','#7f8c8d','#2980b9','#27ae60'];
 
 function getContractorsExpiringSoon(days = 30) {
-  return people.filter(p => p.type !== 'perm' && p.status === 'active' && daysUntil(p.endDate) <= days && daysUntil(p.endDate) >= 0);
+  return people.filter(p => p.type !== 'perm' && p.status === 'active' && !p.isVacant && daysUntil(p.endDate) <= days && daysUntil(p.endDate) >= 0);
 }
 
 function getTotalDailySpend() {
-  return people.filter(p => p.type !== 'perm' && p.status === 'active' && p.dayRate)
+  return people.filter(p => p.type !== 'perm' && p.status === 'active' && !p.isVacant && p.dayRate)
     .reduce((a, p) => a + p.dayRate, 0);
 }
 

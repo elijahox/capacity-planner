@@ -90,7 +90,7 @@ function _orgScrollLoop() {
 
 // ── Top-level render ──────────────────────────────────────────
 function renderOrgChart() {
-  const activeCount = people.filter(p => p.status === 'active').length;
+  const activeCount = people.filter(p => p.status === 'active' && !p.isVacant).length;
   return `
     <div class="section-header">
       <div>
@@ -331,6 +331,7 @@ function renderOrgSquadCol(sq, tribe, minW) {
           <div style="display:flex;justify-content:space-between;align-items:center">${hc.toFixed(1)}p actual ${ragPill(rag, util)}</div>
           <div>${committed.toFixed(1)}p committed</div>
           <div style="font-size:11px;margin-top:1px">💻 <span${disc.engineering === 0 ? ' style="color:var(--red)"' : ''}>${disc.engineering.toFixed(1)}p</span> dev  🔍 <span${disc.qe === 0 ? ' style="color:var(--red)"' : ''}>${disc.qe.toFixed(1)}p</span> QE</div>
+          ${(() => { const vac = getSquadVacancies(sq.id); return vac.total > 0 ? `<div style="font-size:10px;color:var(--text-muted);margin-top:2px">${vac.total} vacant (${vac.approved} approved, ${vac.pending} pending)</div>` : ''; })()}
         </div>
       </div>
 
@@ -389,8 +390,23 @@ function renderOrgPersonCard(p, context) {
   // Use unique DOM ID per context so secondary card doesn't collide with primary
   const nameElId = isSecondary ? `person-name-display-${p.id}-sec` : `person-name-display-${p.id}`;
 
+  // Vacancy support
+  const isVacant = !!p.isVacant;
+  const vacantClass = isVacant ? ' vacant-card' : '';
+  const displayName = (isVacant && !p.name) ? `<em>${p.role || 'Vacant'}</em>` : p.name;
+  let vacancyBadge = '';
+  if (isVacant) {
+    vacancyBadge = p.vacancyStatus === 'approved'
+      ? '<span class="badge badge-vacancy-approved" style="font-size:10px;padding:1px 6px">✓ Approved</span>'
+      : '<span class="badge badge-vacancy-pending" style="font-size:10px;padding:1px 6px">⏳ Pending</span>';
+  }
+  let vacancyProject = '';
+  if (isVacant && p.vacancyProject && p.type !== 'perm') {
+    vacancyProject = `<div style="font-size:10px;color:var(--text-dim);margin-top:2px;font-style:italic">for ${p.vacancyProject}</div>`;
+  }
+
   return `
-    <div class="orgchart-person-card"
+    <div class="orgchart-person-card${vacantClass}"
          draggable="true"
          data-person-id="${p.id}"
          ondragstart="orgChartDragStart(event,'${p.id}',null,null,'${context}')"
@@ -399,11 +415,10 @@ function renderOrgPersonCard(p, context) {
          ondragleave="orgChartCardDragLeave(event)"
          ondrop="orgChartCardDrop(event,'${p.id}','${cardSquadId}')"
          onclick="openPersonModal('${p.id}')"${tooltipAttr}
-         style="background:${cardBg};border:1px solid var(--border);
-                border-radius:7px;padding:9px 11px;user-select:none;position:relative">
+         style="${isVacant ? '' : `background:${cardBg};border:1px solid var(--border);`}border-radius:7px;padding:9px 11px;user-select:none;position:relative">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:4px;margin-bottom:1px">
-        <div id="${nameElId}"
-             style="font-weight:700;font-size:13px;flex:1">${p.name}</div>
+        <div class="${isVacant ? 'org-card-name' : ''}" id="${nameElId}"
+             style="font-weight:700;font-size:13px;flex:1">${displayName}</div>
         <button class="person-edit-pencil"
                 onclick="orgChartEditPersonName('${p.id}',event)"
                 style="background:none;border:none;cursor:pointer;color:var(--text-dim);
@@ -414,9 +429,11 @@ function renderOrgPersonCard(p, context) {
       <div style="color:var(--text-muted);font-size:12px;margin-bottom:6px">${p.role}</div>
       <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px">
         <span class="badge ${getTypeClass(p.type)}">${shortType}</span>
+        ${vacancyBadge}
         ${sharedBadges}
         ${expiryHtml}
       </div>
+      ${vacancyProject}
     </div>`;
 }
 

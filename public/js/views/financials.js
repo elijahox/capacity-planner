@@ -3,7 +3,7 @@
 // ================================================================
 
 function renderFinancials() {
-  const active = people.filter(p=>p.type!=='perm'&&p.status==='active'&&p.dayRate);
+  const active = people.filter(p=>p.type!=='perm'&&p.status==='active'&&!p.isVacant&&p.dayRate);
   const daily = active.reduce((a,p)=>a+p.dayRate,0);
   const monthly = daily * 21;
   const annual = daily * 252;
