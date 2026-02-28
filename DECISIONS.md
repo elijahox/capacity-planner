@@ -110,6 +110,9 @@ overwriting real data in the database.
 ## 2026-02-28: estimatedRoles on initiatives
 Added `estimatedRoles` array to initiatives for role-level business case estimates (role, days, dayRate, budget, squad). All values are direct inputs — no auto-calculations. Existing initiatives default to empty array. This will eventually replace `allocations` and `estimatedCapacity`.
 
+## 2026-02-28: Merged Pipeline + Initiatives into Portfolio view
+Merged Pipeline and Initiatives views into a single Portfolio view. Tier-grouped layout with status filter bar. Role estimates (estimatedRoles) are managed inline on each initiative card. Old pipeline.js and initiatives.js removed.
+
 ## 2026-02-28: Save as Seed, Export/Import, test removal
 Added "Save as Seed" (`POST /api/seed`) to checkpoint live DB state into `seed.js` from
 the app UI. Added JSON export/import for manual backups. Removed test suite and

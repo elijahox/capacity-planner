@@ -28,8 +28,7 @@ capacity-planner/
 │           ├── orgchart.js    # Tribes → squads → person cards, leadership, vacancies, drag-drop
 │           ├── people.js      # People register: all staff, filter by type, CSV import
 │           ├── contractors.js # Contractor watch: expiring contracts
-│           ├── initiatives.js # Allocation management
-│           ├── pipeline.js    # Business case tracking: submitted → approved → in_delivery → complete
+│           ├── portfolio.js    # Portfolio: initiative lifecycle, role estimates, status transitions
 │           ├── roadmap.js     # Initiative timeline
 │           ├── demand.js      # Work profiles + canvas chart
 │           └── financials.js  # Cost tracking
@@ -43,8 +42,7 @@ capacity-planner/
 - **Org Chart** — tribes, squads, people, leadership, vacancy cards, discipline counts
 - **People Register** — all staff, filter by type, CSV import
 - **Contractor Watch** — expiring contracts grouped by urgency
-- **Initiatives** — allocation management
-- **Pipeline** — business case tracking (submitted → approved → in_delivery → complete)
+- **Portfolio** — initiative lifecycle management, role estimates, status transitions (submitted → approved → in_delivery → complete)
 - **Roadmap** — initiative timeline
 - **Demand** — work profiles + peak collision analysis
 - **Financials** — cost tracking
