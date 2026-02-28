@@ -38,6 +38,10 @@ function applyState(data) {
     // Defensive migration: ensure every initiative has estimatedRoles
     for (const init of initiatives) {
       if (!init.estimatedRoles) init.estimatedRoles = [];
+      // Ensure every role estimate has a type field
+      for (const role of init.estimatedRoles) {
+        if (!role.type) role.type = 'contractor';
+      }
     }
   }
   if (data.people)          people          = data.people;
