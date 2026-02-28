@@ -104,6 +104,11 @@ function renderOrgChart() {
 function renderOrgTribeGroup(tribe) {
   const tribeSquads = squads.filter(s => s.tribe === tribe.id);
   const tribeHC = tribeSquads.reduce((a, s) => a + getEffectiveSquadSize(s.id), 0);
+  const tribeDisc = tribeSquads.reduce((acc, s) => {
+    const d = getSquadDisciplineCounts(s.id);
+    acc.engineering += d.engineering; acc.qe += d.qe;
+    return acc;
+  }, { engineering: 0, qe: 0 });
   const c = tribe.color;
   const SQ_W = 192;
   const GAP = 12;
@@ -117,7 +122,7 @@ function renderOrgTribeGroup(tribe) {
                   display:flex;align-items:center;justify-content:space-between;gap:12px">
         <span style="font-family:'Inter',sans-serif;font-weight:700;font-size:14px;letter-spacing:-0.3px">${tribe.name}</span>
         <div style="display:flex;align-items:center;gap:10px">
-          <span style="font-size:11px;font-family:'JetBrains Mono',monospace;opacity:0.75">${tribeSquads.length} squads · ${tribeHC}p</span>
+          <span style="font-size:11px;font-family:'JetBrains Mono',monospace;opacity:0.75">${tribeSquads.length} squads · ${tribeHC}p · ⚙ ${tribeDisc.engineering.toFixed(1)}p  🧪 <span${tribeDisc.qe === 0 ? ' style="color:#fca5a5"' : ''}>${tribeDisc.qe.toFixed(1)}p</span></span>
           <span id="new-squad-${tribe.id}">
             <button onclick="orgChartNewSquad('${tribe.id}')"
                     style="background:none;border:1px solid rgba(255,255,255,0.4);color:#fff;
@@ -247,6 +252,7 @@ function renderOrgSquadCol(sq, tribe, minW) {
   const { total: util } = getSquadAllocation(sq.id);
   const committed = getCommittedHeadcount(sq.id);
   const rag = getSquadRAG(sq.id);
+  const disc = getSquadDisciplineCounts(sq.id);
   const c = tribe.color;
 
   // Build exclusion set: anyone in a leadership slot should NOT appear in squad columns
@@ -309,6 +315,7 @@ function renderOrgSquadCol(sq, tribe, minW) {
         <div style="font-size:12px;color:var(--text-muted);line-height:1.3;margin-top:2px">
           <div style="display:flex;justify-content:space-between;align-items:center">${hc.toFixed(1)}p actual ${ragPill(rag, util)}</div>
           <div>${committed.toFixed(1)}p committed</div>
+          <div style="font-size:11px;margin-top:1px">⚙ <span${disc.engineering === 0 ? ' style="color:var(--red)"' : ''}>${disc.engineering.toFixed(1)}p</span> eng  🧪 <span${disc.qe === 0 ? ' style="color:var(--red)"' : ''}>${disc.qe.toFixed(1)}p</span> QE</div>
         </div>
       </div>
 

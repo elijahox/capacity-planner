@@ -2,6 +2,73 @@
 // UTILS — helper functions (dates, formatting, computed values)
 // ================================================================
 
+// Discipline mapping — maps roles to capacity disciplines
+// Order matters: delivery before engineering so "Engineering Manager" matches
+// delivery (not the generic "Engineer" in engineering).
+const DISCIPLINE_MAP = {
+  delivery: [
+    'Delivery Lead',
+    'Delivery Manager',
+    'Senior Manager Delivery',
+    'Engineering Manager',
+    'Head of Customer Platforms',
+  ],
+  qe: [
+    'Quality Engineer',
+    'Snr QE/Automation',
+  ],
+  product: [
+    'Product Manager',
+    'Senior Product Manager',
+    'Senior Manager Product',
+    'Product Designer',
+    'Senior Product Designer',
+    'Principal Product Designer',
+    'Product Design Lead',
+    'Business Analyst',
+    'Senior Business Analyst',
+    'Lead Business Analyst',
+    'Associate BA',
+    'Design Researcher',
+    'Lead Design Researcher',
+  ],
+  engineering: [
+    'Engineer',
+    'Senior Engineer',
+    'Lead Engineer',
+    'Principal Engineer',
+    'Senior Engineer (BE)',
+    'Engineer (BE)',
+    'Senior Engineer (.NET)',
+    'Engineer (SF)',
+    'Tech Lead',
+    'Acting Tech Lead',
+    'Platform Engineer',
+    'Senior Platform Engineer',
+  ],
+};
+
+function getDiscipline(role) {
+  for (const [discipline, roles] of Object.entries(DISCIPLINE_MAP)) {
+    if (roles.some(r => role?.toLowerCase().includes(r.toLowerCase()))) return discipline;
+  }
+  return 'other';
+}
+
+function getSquadDisciplineCounts(squadId) {
+  const counts = { engineering: 0, qe: 0, product: 0, delivery: 0, other: 0 };
+  people.forEach(p => {
+    if (p.status !== 'active') return;
+    let weight = 0;
+    if (p.squad === squadId) weight = p.secondarySquad ? 0.5 : 1;
+    else if (p.secondarySquad === squadId) weight = 0.5;
+    if (weight === 0) return;
+    const discipline = getDiscipline(p.role);
+    counts[discipline] += weight;
+  });
+  return counts;
+}
+
 function today() { return new Date(); }
 
 function daysUntil(dateStr) {
