@@ -54,6 +54,26 @@ function renderOverview() {
         <div class="summary-value" style="cursor:pointer" onclick="editFY27HC(this)" title="Click to edit">${fy27Set ? fy27PlannedHeadcount : '—'}</div>
         <div class="summary-sub">${fy27Variance}</div>
       </div>
+      ${(() => {
+        let totalDevQE = 0, totalAssigned = 0;
+        squads.forEach(sq => {
+          const cap = getSquadAvailableCapacity(sq.id);
+          totalDevQE += cap.deliveryHeadcount;
+          totalAssigned += cap.allocatedHeadcount;
+        });
+        const totalAvail = Math.max(0, totalDevQE - totalAssigned);
+        const orgUtil = totalDevQE > 0 ? (totalAssigned / totalDevQE) * 100 : 0;
+        const uCol = orgUtil > 100 ? 'var(--red)' : orgUtil >= 70 ? 'var(--green)' : 'var(--amber)';
+        const barW = Math.min(orgUtil, 100);
+        return `<div class="summary-card green">
+          <div class="summary-label">Dev+QE Utilisation</div>
+          <div class="summary-value" style="color:${uCol}">${Math.round(orgUtil)}%</div>
+          <div style="height:6px;background:var(--bg2);border-radius:999px;overflow:hidden;margin:6px 0 4px;border:1px solid var(--border)">
+            <div style="height:100%;width:${barW}%;background:${uCol};border-radius:999px"></div>
+          </div>
+          <div class="summary-sub">${totalAssigned.toFixed(1)} assigned / ${totalDevQE.toFixed(1)} total · ${totalAvail.toFixed(1)} available</div>
+        </div>`;
+      })()}
     </div>`;
 
   // Alerts

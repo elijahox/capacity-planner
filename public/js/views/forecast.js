@@ -109,36 +109,61 @@ function _fcInitDateRange(init) {
 function _fcDemand(init, squadId, quarter, qWorkingDays, initWDCache) {
   const roles = init.estimatedRoles || [];
   const ps = init.pipelineStatus || 'in_delivery';
-  const squadRoles = roles.filter(r => r.squad === squadId && r.days > 0);
+  const squadRoles = roles.filter(r => r.squad === squadId);
 
-  if (squadRoles.length > 0) {
-    // ── estimatedRoles path ──
+  // ── Assignment-based path: roles with a personId use allocation % directly ──
+  const assignedRoles = squadRoles.filter(r => r.personId);
+  const unassignedRoles = squadRoles.filter(r => !r.personId && r.days > 0);
+
+  let assignedHC = 0;
+  if (assignedRoles.length > 0) {
+    // Check if initiative overlaps this quarter (if dates exist)
+    const range = _fcInitDateRange(init);
+    let inRange = true;
+    if (range) {
+      if (range.start > quarter.end || range.end < quarter.start) inRange = false;
+    }
+    if (inRange) {
+      assignedRoles.forEach(r => {
+        const alloc = r.allocation != null ? r.allocation : 100;
+        assignedHC += alloc / 100;
+      });
+    }
+  }
+
+  // ── Days-based path for unassigned roles ──
+  let unassignedHC = 0;
+  if (unassignedRoles.length > 0) {
     const range = _fcInitDateRange(init);
     if (!range) {
       // No dates → spread evenly across all 4 displayed quarters
-      const totalDays = squadRoles.reduce((a, r) => a + (r.days || 0), 0);
-      return qWorkingDays > 0 ? (totalDays / 4) / qWorkingDays : 0;
+      const totalDays = unassignedRoles.reduce((a, r) => a + (r.days || 0), 0);
+      unassignedHC = qWorkingDays > 0 ? (totalDays / 4) / qWorkingDays : 0;
+    } else {
+      const oStart = new Date(Math.max(range.start.getTime(), quarter.start.getTime()));
+      const oEnd = new Date(Math.min(range.end.getTime(), quarter.end.getTime()));
+      if (oStart <= oEnd) {
+        let initWD = initWDCache.get(init.id);
+        if (initWD === undefined) {
+          initWD = _fcWorkingDays(range.start, range.end);
+          initWDCache.set(init.id, initWD);
+        }
+        if (initWD > 0) {
+          const overlapWD = _fcWorkingDays(oStart, oEnd);
+          const proportion = overlapWD / initWD;
+          const totalDays = unassignedRoles.reduce((a, r) => a + (r.days || 0), 0);
+          unassignedHC = qWorkingDays > 0 ? (proportion * totalDays) / qWorkingDays : 0;
+        }
+      }
     }
+  }
 
-    // Check overlap
-    const oStart = new Date(Math.max(range.start.getTime(), quarter.start.getTime()));
-    const oEnd = new Date(Math.min(range.end.getTime(), quarter.end.getTime()));
-    if (oStart > oEnd) return 0;
+  if (assignedRoles.length > 0 || unassignedRoles.length > 0) {
+    return assignedHC + unassignedHC;
+  }
 
-    // Cache initiative total working days
-    let initWD = initWDCache.get(init.id);
-    if (initWD === undefined) {
-      initWD = _fcWorkingDays(range.start, range.end);
-      initWDCache.set(init.id, initWD);
-    }
-    if (initWD === 0) return 0;
-
-    const overlapWD = _fcWorkingDays(oStart, oEnd);
-    const proportion = overlapWD / initWD;
-    const totalDays = squadRoles.reduce((a, r) => a + (r.days || 0), 0);
-    return qWorkingDays > 0 ? (proportion * totalDays) / qWorkingDays : 0;
-
-  } else {
+  // ── No estimatedRoles: legacy fallback ──
+  {
     // ── Legacy fallback: allocations / estimatedCapacity ──
     const range = _fcInitDateRange(init);
     if (range) {
