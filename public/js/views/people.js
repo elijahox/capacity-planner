@@ -495,6 +495,7 @@ function addPerson() {
   };
   people.push(newPerson);
   closeModal();
+  scheduleSave();
   _peopleRerender();
   renderSidebar();
 }
