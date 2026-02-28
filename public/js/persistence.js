@@ -33,7 +33,13 @@ function applyState(data) {
   if (!data) return;
   // Full replacement for arrays — DB data completely replaces defaults
   if (data.squads)          squads          = data.squads;
-  if (data.initiatives)     initiatives     = data.initiatives;
+  if (data.initiatives) {
+    initiatives = data.initiatives;
+    // Defensive migration: ensure every initiative has estimatedRoles
+    for (const init of initiatives) {
+      if (!init.estimatedRoles) init.estimatedRoles = [];
+    }
+  }
   if (data.people)          people          = data.people;
   // Full replacement for objects — wipe defaults, use only DB data.
   // Object.assign was merging, leaving stale default keys behind.
