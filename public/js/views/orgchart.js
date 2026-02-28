@@ -11,11 +11,6 @@ let _orgDropPosition = null;   // 'before' | 'after' relative to target card
 // ── Split-squad drag context ─────────────────────────────────
 let _orgDragContext = 'primary'; // 'primary' | 'secondary'
 
-// ── Swimlane constants ──────────────────────────────────────
-const _SLOT_H = 56;       // height per slot (placeholder 44px + gap + padding share)
-const _BAND_PAD = 12;     // padding per band (6px top + 6px bottom)
-const _HEADER_MIN_H = 90; // fixed squad header min-height for label alignment
-
 // ── Drag-to-scroll state ──────────────────────────────────────
 let _orgScrollRAF = null;
 let _orgMouseX = 0;
@@ -144,7 +139,6 @@ function renderOrgTribeGroup(tribe) {
 
       <!-- Connector row: single horizontal line + vertical drops -->
       <div style="display:flex;gap:${GAP}px;margin-bottom:0">
-        <div style="width:60px;flex-shrink:0"></div>
         ${tribeSquads.map(() => `
           <div style="flex:1;min-width:${SQ_W}px;height:16px;
                       border-top:2px solid ${c};
@@ -156,7 +150,6 @@ function renderOrgTribeGroup(tribe) {
 
       <!-- Squad columns row -->
       <div style="display:flex;gap:${GAP}px;align-items:flex-start">
-        ${renderOrgLaneLabels()}
         ${tribeSquads.map(sq => renderOrgSquadCol(sq, tribe, SQ_W)).join('')}
       </div>
 
@@ -281,14 +274,6 @@ function renderOrgSquadCol(sq, tribe, minW) {
     return (ai === -1 ? Infinity : ai) - (bi === -1 ? Infinity : bi);
   });
 
-  // Group people by swimlane, preserving order within each lane
-  const byLane = {};
-  SWIMLANES.forEach(l => { byLane[l.id] = []; });
-  allSquadPeople.forEach(({ person, context }) => {
-    const lane = getSwimLane(person.role);
-    byLane[lane].push({ person, context });
-  });
-
   return `
     <div class="orgchart-squad-col"
          style="flex:1;min-width:${minW}px;
@@ -302,7 +287,7 @@ function renderOrgSquadCol(sq, tribe, minW) {
          ondrop="orgChartDrop(event,'${sq.id}')">
 
       <!-- Squad header -->
-      <div style="padding:8px 12px;border-bottom:1px solid var(--border);background:var(--surface2);min-height:${_HEADER_MIN_H}px;box-sizing:border-box">
+      <div style="padding:8px 12px;border-bottom:1px solid var(--border);background:var(--surface2)">
         <div style="display:flex;align-items:center;gap:4px">
           <div style="flex:1;min-width:0">
             <div class="orgchart-squad-name"
@@ -335,10 +320,10 @@ function renderOrgSquadCol(sq, tribe, minW) {
         </div>
       </div>
 
-      <!-- Swimlane bands -->
-      <div>
-        ${SWIMLANES.map((lane, i) => _renderSwimlaneBand(lane, i, byLane[lane.id], sq, tribe)).join('')}
-        <div style="padding:6px 8px">
+      <!-- Cards -->
+      <div style="display:flex;flex-direction:column;gap:6px;padding:8px">
+        ${allSquadPeople.map(({ person, context }) => renderOrgPersonCard(person, context)).join('')}
+        <div>
           <button onclick="openAddPersonModal('${sq.id}')"
                   style="width:100%;padding:7px 0;border:1.5px dashed var(--border-strong);
                          border-radius:6px;background:none;cursor:pointer;
@@ -916,32 +901,3 @@ function _hexToRgba(hex, alpha) {
   return `rgba(${r},${g},${b},${alpha})`;
 }
 
-// ── Swimlane helpers ────────────────────────────────────────
-
-// Renders the sticky label column (one per tribe, left-edge)
-function renderOrgLaneLabels() {
-  return `
-    <div class="orgchart-lane-labels">
-      <div style="min-height:${_HEADER_MIN_H}px;border-bottom:1px solid var(--border)"></div>
-      ${SWIMLANES.map((lane, i) => {
-        const h = lane.slots * _SLOT_H + _BAND_PAD;
-        return `<div class="orgchart-lane-label ${i % 2 === 0 ? 'swimlane-band-even' : 'swimlane-band-odd'}"
-                     style="min-height:${h}px">${lane.label}</div>`;
-      }).join('')}
-    </div>`;
-}
-
-// Renders a single swimlane band within a squad column
-function _renderSwimlaneBand(lane, index, lanePeople, sq, tribe) {
-  const h = lane.slots * _SLOT_H + _BAND_PAD;
-  const overflow = lanePeople.length > lane.slots;
-  const emptyCount = Math.max(0, lane.slots - lanePeople.length);
-
-  return `
-    <div class="swimlane-band ${index % 2 === 0 ? 'swimlane-band-even' : 'swimlane-band-odd'}"
-         style="min-height:${h}px">
-      ${overflow ? `<div class="swimlane-overflow">\u26a0 ${lanePeople.length}/${lane.slots} slots</div>` : ''}
-      ${lanePeople.map(({ person, context }) => renderOrgPersonCard(person, context)).join('')}
-      ${Array.from({ length: emptyCount }, () => '<div class="swimlane-placeholder"></div>').join('')}
-    </div>`;
-}
