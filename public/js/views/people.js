@@ -5,6 +5,14 @@
 let _peopleFilter = 'all';
 let _peopleFilterActive = false;
 
+// Status filter — uses sentinel pattern (resets on nav away)
+let _statusFilter = 'active';
+let _statusFilterActive = false;
+
+// Column sorting — persists across re-renders (no sentinel)
+let _sortColumn = 'name';
+let _sortDirection = 'asc';
+
 // Scroll-preserving re-render — prevents org chart scroll reset on modal save
 function _peopleRerender() {
   const scroller = document.getElementById('orgchart-scroll');
@@ -34,8 +42,31 @@ function _setupModalEnterKey(saveBtnId) {
 function setPeopleFilter(v) {
   _peopleFilter = v;
   _peopleFilterActive = true;
+  _statusFilterActive = true; // preserve status filter across type filter change
   renderContent();
 }
+
+function setStatusFilter(v) {
+  _statusFilter = v;
+  _statusFilterActive = true;
+  _peopleFilterActive = true; // preserve type filter across status filter change
+  renderContent();
+}
+
+function setPeopleSort(col) {
+  if (_sortColumn === col) {
+    _sortDirection = _sortDirection === 'asc' ? 'desc' : 'asc';
+  } else {
+    _sortColumn = col;
+    _sortDirection = 'asc';
+  }
+  _peopleFilterActive = true;  // preserve both filters
+  _statusFilterActive = true;
+  renderContent();
+}
+
+window.setStatusFilter = setStatusFilter;
+window.setPeopleSort = setPeopleSort;
 
 function toggleVacantFields(prefix) {
   const checked = document.getElementById(prefix + '-vacant').checked;
@@ -47,18 +78,68 @@ function toggleVacantFields(prefix) {
 function renderPeople() {
   if (!_peopleFilterActive) _peopleFilter = 'all';
   _peopleFilterActive = false;
+  if (!_statusFilterActive) _statusFilter = 'active';
+  _statusFilterActive = false;
   const filter = _peopleFilter;
+  const statusF = _statusFilter;
 
+  // --- Type filter ---
   let filtered;
   if (filter === 'vacant') {
     filtered = people.filter(p => p.isVacant);
-  } else if (filter === 'inactive') {
-    filtered = people.filter(p => p.status === 'inactive');
   } else {
-    filtered = people.filter(p => p.status === 'active');
+    filtered = [...people];
     if (filter === 'perm')    filtered = filtered.filter(p => p.type === 'perm');
     if (filter === 'nonperm') filtered = filtered.filter(p => p.type === 'contractor' || p.type === 'msp');
   }
+
+  // --- Status filter ---
+  if (statusF === 'active')   filtered = filtered.filter(p => p.status === 'active');
+  if (statusF === 'inactive') filtered = filtered.filter(p => p.status === 'inactive');
+
+  // --- Sort helper ---
+  const _getSquadName = (p) => { const s = squads.find(x => x.id === p.squad); return s ? s.name : ''; };
+  const _getTribeName = (p) => { const s = squads.find(x => x.id === p.squad); const t = s ? TRIBES.find(x => x.id === s.tribe) : null; return t ? t.name : ''; };
+  const dir = _sortDirection === 'asc' ? 1 : -1;
+
+  filtered.sort((a, b) => {
+    let va, vb;
+    switch (_sortColumn) {
+      case 'name':         va = (a.name || '').toLowerCase(); vb = (b.name || '').toLowerCase(); break;
+      case 'role':         va = (a.role || '').toLowerCase(); vb = (b.role || '').toLowerCase(); break;
+      case 'squad':        va = _getSquadName(a).toLowerCase(); vb = _getSquadName(b).toLowerCase(); break;
+      case 'tribe':        va = _getTribeName(a).toLowerCase(); vb = _getTribeName(b).toLowerCase(); break;
+      case 'type':         va = (a.type || '').toLowerCase(); vb = (b.type || '').toLowerCase(); break;
+      case 'status':       va = (a.status || '').toLowerCase(); vb = (b.status || '').toLowerCase(); break;
+      case 'dayRate': {
+        const ra = a.dayRate || 0, rb = b.dayRate || 0;
+        // Nulls/0 to bottom regardless of direction
+        if (!ra && rb) return 1;
+        if (ra && !rb) return -1;
+        return (ra - rb) * dir;
+      }
+      case 'agency':       va = (a.agency || '').toLowerCase(); vb = (b.agency || '').toLowerCase(); break;
+      case 'endDate': {
+        const da = a.endDate || '', db = b.endDate || '';
+        // Nulls to bottom for asc, top for desc
+        if (!da && db) return dir === 1 ? 1 : -1;
+        if (da && !db) return dir === 1 ? -1 : 1;
+        return da < db ? -1 * dir : da > db ? 1 * dir : 0;
+      }
+      case 'nextAction':   va = (a.nextAction || '').toLowerCase(); vb = (b.nextAction || '').toLowerCase(); break;
+      case 'actionStatus': va = (a.actionStatus || '').toLowerCase(); vb = (b.actionStatus || '').toLowerCase(); break;
+      default:             va = ''; vb = '';
+    }
+    // dayRate and endDate handled above with early return
+    if (_sortColumn === 'dayRate' || _sortColumn === 'endDate') return 0;
+    return va < vb ? -1 * dir : va > vb ? 1 * dir : 0;
+  });
+
+  // --- Sort header helper ---
+  const arrow = (col) => _sortColumn === col ? (_sortDirection === 'asc' ? ' ▲' : ' ▼') : '';
+  const thStyle = 'cursor:pointer;user-select:none';
+  const arrowStyle = 'color:var(--text-muted);font-size:10px';
+  const th = (col, label) => `<th style="${thStyle}" onclick="setPeopleSort('${col}')">${label}<span style="${arrowStyle}">${arrow(col)}</span></th>`;
 
   const btnStyle = 'border-radius:999px';
   return `
@@ -68,25 +149,37 @@ function renderPeople() {
         <div class="section-sub">${people.filter(p=>p.status==='active').length} active people across all squads</div>
       </div>
       <div style="display:flex;gap:10px;align-items:center">
-        <div style="display:flex;gap:4px">
-          <button class="btn btn-sm ${filter==='all'    ? 'btn-primary' : 'btn-secondary'}" style="${btnStyle}" onclick="setPeopleFilter('all')">All</button>
-          <button class="btn btn-sm ${filter==='perm'   ? 'btn-primary' : 'btn-secondary'}" style="${btnStyle}" onclick="setPeopleFilter('perm')">Permanent</button>
-          <button class="btn btn-sm ${filter==='nonperm'? 'btn-primary' : 'btn-secondary'}" style="${btnStyle}" onclick="setPeopleFilter('nonperm')">Contractors &amp; MSP</button>
-          <button class="btn btn-sm ${filter==='vacant' ? 'btn-primary' : 'btn-secondary'}" style="${btnStyle}" onclick="setPeopleFilter('vacant')">Vacant</button>
-        </div>
         <button class="btn btn-secondary btn-sm" onclick="openCsvImportModal()">↑ Import CSV</button>
         <button class="btn btn-primary btn-sm" onclick="openAddPersonModal(null)">+ Add Person</button>
       </div>
     </div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+      <div style="display:flex;gap:4px;align-items:center">
+        <span style="font-size:12px;font-weight:600;color:var(--text-muted);margin-right:2px">Type</span>
+        <button class="btn btn-sm ${filter==='all'    ? 'btn-primary' : 'btn-secondary'}" style="${btnStyle}" onclick="setPeopleFilter('all')">All</button>
+        <button class="btn btn-sm ${filter==='perm'   ? 'btn-primary' : 'btn-secondary'}" style="${btnStyle}" onclick="setPeopleFilter('perm')">Permanent</button>
+        <button class="btn btn-sm ${filter==='nonperm'? 'btn-primary' : 'btn-secondary'}" style="${btnStyle}" onclick="setPeopleFilter('nonperm')">Contractors &amp; MSP</button>
+        <button class="btn btn-sm ${filter==='vacant' ? 'btn-primary' : 'btn-secondary'}" style="${btnStyle}" onclick="setPeopleFilter('vacant')">Vacant</button>
+      </div>
+      <div style="display:flex;gap:4px;align-items:center">
+        <span style="font-size:12px;font-weight:600;color:var(--text-muted);margin-right:2px">Status</span>
+        <button class="btn btn-sm ${statusF==='active'   ? 'btn-primary' : 'btn-secondary'}" style="${btnStyle}" onclick="setStatusFilter('active')">Active</button>
+        <button class="btn btn-sm ${statusF==='inactive' ? 'btn-primary' : 'btn-secondary'}" style="${btnStyle}" onclick="setStatusFilter('inactive')">Inactive</button>
+        <button class="btn btn-sm ${statusF==='all'      ? 'btn-primary' : 'btn-secondary'}" style="${btnStyle}" onclick="setStatusFilter('all')">All</button>
+      </div>
+    </div>
     <div class="card">
       <table class="data-table">
-        <thead><tr><th>Name</th><th>Role</th><th>Squad</th><th>2nd Squad</th><th>Tribe</th><th>Type</th><th>Vacancy</th><th>Day Rate</th><th>Agency</th><th>End Date</th><th>Next Action</th><th>Action Status</th></tr></thead>
+        <thead><tr>${th('name','Name')}${th('role','Role')}${th('squad','Squad')}<th>2nd Squad</th>${th('tribe','Tribe')}${th('type','Type')}${th('status','Status')}<th>Vacancy</th>${th('dayRate','Day Rate')}${th('agency','Agency')}${th('endDate','End Date')}${th('nextAction','Next Action')}${th('actionStatus','Action Status')}</tr></thead>
         <tbody>
           ${filtered.map(p => {
             const sq = squads.find(s => s.id === p.squad);
             const secSq = p.secondarySquad ? squads.find(s => s.id === p.secondarySquad) : null;
             const tribe = sq ? TRIBES.find(t => t.id === sq.tribe) : null;
             const displayName = (p.isVacant && !p.name) ? `<em style="color:var(--text-muted)">${p.role || 'Vacant'}</em>` : p.name;
+            const statusBadge = p.status === 'active'
+              ? '<span style="display:inline-block;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:500;background:var(--green-light);color:var(--green)">Active</span>'
+              : '<span style="display:inline-block;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:500;background:var(--bg2);color:var(--text-muted);border:1px solid var(--border)">Inactive</span>';
             return `<tr onclick="openPersonModal('${p.id}')">
               <td><strong>${displayName}</strong></td>
               <td style="color:var(--text-muted)">${p.role}</td>
@@ -94,6 +187,7 @@ function renderPeople() {
               <td>${secSq ? secSq.name : '—'}</td>
               <td>${tribe ? `<span style="display:flex;align-items:center;gap:5px"><div style="width:7px;height:7px;border-radius:50%;background:${tribe.color}"></div>${tribe.name}</span>` : '—'}</td>
               <td><span class="badge ${getTypeClass(p.type)}">${getTypeLabel(p.type)}</span></td>
+              <td>${statusBadge}</td>
               <td>${p.isVacant ? `<span class="badge ${p.vacancyStatus === 'approved' ? 'badge-vacancy-approved' : 'badge-vacancy-pending'}">${p.vacancyStatus === 'approved' ? 'Vacant ✓' : 'Vacant ⏳'}</span>` : '—'}</td>
               <td style="font-family:'JetBrains Mono',monospace">${fmtCurrency(p.dayRate)}</td>
               <td>${p.agency || '—'}</td>
