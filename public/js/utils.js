@@ -53,6 +53,32 @@ function getSquadAllocation(squadId) {
   return { total, breakdown };
 }
 
+// Committed headcount = (total allocation % / 100) * squad.size baseline
+function getCommittedHeadcount(squadId) {
+  const sq = squads.find(s => s.id === squadId);
+  const baseline = sq ? sq.size : 0;
+  const { total } = getSquadAllocation(squadId);
+  return (total / 100) * baseline;
+}
+
+// RAG status: green = fully staffed, amber = 1-2 below, red = 3+ below or >100% alloc
+function getSquadRAG(squadId) {
+  const actual = getEffectiveSquadSize(squadId);
+  const committed = getCommittedHeadcount(squadId);
+  const { total } = getSquadAllocation(squadId);
+  if (total > 100) return 'red';
+  const gap = committed - actual;
+  if (gap <= 0) return 'green';
+  if (gap <= 2) return 'amber';
+  return 'red';
+}
+
+// Returns a coloured RAG dot as inline HTML
+function ragDot(rag) {
+  const colors = { green: 'var(--green)', amber: 'var(--amber)', red: 'var(--red)' };
+  return `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${colors[rag] || colors.green}" title="${rag.toUpperCase()}"></span>`;
+}
+
 function utilColor(pct) {
   if (pct > 100) return '#ef4444'; // --red
   if (pct >= 85)  return '#10b981'; // --green

@@ -10,6 +10,13 @@ function renderOverview() {
   const avgUtil = squads.reduce((a, s) => a + getSquadAllocation(s.id).total, 0) / squads.length;
   const dailySpend = getTotalDailySpend();
 
+  // FY27 variance
+  const fy27Set = fy27PlannedHeadcount != null;
+  const fy27Diff = fy27Set ? totalHC - fy27PlannedHeadcount : 0;
+  const fy27Variance = fy27Set
+    ? `Variance: ${fy27Diff >= 0 ? '+' : ''}${fy27Diff.toFixed(1)} vs actual`
+    : 'Click to set';
+
   let html = `
     <div class="summary-row">
       <div class="summary-card green">
@@ -37,6 +44,11 @@ function renderOverview() {
         <div class="summary-value" style="font-size:20px">${fmtCurrency(dailySpend)}</div>
         <div class="summary-sub">${totalContractors} active contractors/MSPs</div>
       </div>
+      <div class="summary-card blue">
+        <div class="summary-label">FY27 Planned HC</div>
+        <div class="summary-value" style="cursor:pointer" onclick="editFY27HC(this)" title="Click to edit">${fy27Set ? fy27PlannedHeadcount : '—'}</div>
+        <div class="summary-sub">${fy27Variance}</div>
+      </div>
     </div>`;
 
   // Alerts
@@ -62,6 +74,8 @@ function renderOverview() {
     tribeSquads.forEach(sq => {
       const { total, breakdown } = getSquadAllocation(sq.id);
       const hc = getEffectiveSquadSize(sq.id);
+      const committed = getCommittedHeadcount(sq.id);
+      const rag = getSquadRAG(sq.id);
       const sqPeople = people.filter(p => p.squad === sq.id && p.status === 'active');
       const contractors = sqPeople.filter(p => p.type !== 'perm').length;
       html += `<div class="overview-card" onclick="goToSquad('${sq.id}')">
@@ -71,9 +85,12 @@ function renderOverview() {
             <div class="overview-card-name">${sq.name}</div>
             <div class="overview-card-tribe">${tribe.name}</div>
           </div>
-          <div style="text-align:right">
-            <div class="overview-card-hc">${hc}</div>
-            <div class="overview-card-hc-label">people</div>
+          <div style="text-align:right;display:flex;align-items:center;gap:6px">
+            ${ragDot(rag)}
+            <div>
+              <div class="overview-card-hc">${hc}</div>
+              <div class="overview-card-hc-label">${committed.toFixed(1)}p committed</div>
+            </div>
           </div>
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center">
@@ -86,4 +103,23 @@ function renderOverview() {
     html += '</div></div>';
   });
   return html;
+}
+
+// Inline edit for FY27 Planned HC
+function editFY27HC(el) {
+  const current = fy27PlannedHeadcount != null ? fy27PlannedHeadcount : '';
+  el.innerHTML = `<input type="number" value="${current}"
+    style="width:80px;font-size:28px;font-weight:700;text-align:center;
+           border:2px solid var(--primary);border-radius:6px;padding:2px 6px;
+           background:var(--bg);color:var(--text);font-family:'Inter',sans-serif"
+    onblur="saveFY27HC(this)" onkeydown="if(event.key==='Enter')this.blur();if(event.key==='Escape'){fy27PlannedHeadcount=fy27PlannedHeadcount;renderContent();}">`;
+  el.querySelector('input').focus();
+  el.querySelector('input').select();
+}
+
+function saveFY27HC(input) {
+  const val = parseFloat(input.value);
+  fy27PlannedHeadcount = isNaN(val) ? null : val;
+  scheduleSave();
+  renderContent();
 }

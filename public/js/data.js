@@ -227,3 +227,6 @@ let tribeLeadership = {};
 // Explicit display order of person cards within each squad column
 // squadOrder[squadId] = [personId, ...] — people not listed appear at end
 let squadOrder = {};
+
+// FY27 planned headcount — single number for the whole org, editable on Overview
+let fy27PlannedHeadcount = null;

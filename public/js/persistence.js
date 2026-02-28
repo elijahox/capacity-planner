@@ -25,6 +25,7 @@ function collectState() {
     workProfiles,
     tribeLeadership,
     squadOrder,
+    fy27PlannedHeadcount,
   };
 }
 
@@ -51,6 +52,9 @@ function applyState(data) {
   if (data.squadOrder) {
     for (const k in squadOrder) delete squadOrder[k];
     Object.assign(squadOrder, data.squadOrder);
+  }
+  if (data.hasOwnProperty('fy27PlannedHeadcount')) {
+    fy27PlannedHeadcount = data.fy27PlannedHeadcount;
   }
 }
 

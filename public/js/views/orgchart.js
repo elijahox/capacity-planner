@@ -245,6 +245,8 @@ function orgChartClearLeaderSlot(event, tribeId, slotIdx) {
 function renderOrgSquadCol(sq, tribe, minW) {
   const hc = getEffectiveSquadSize(sq.id);
   const { total: util } = getSquadAllocation(sq.id);
+  const committed = getCommittedHeadcount(sq.id);
+  const rag = getSquadRAG(sq.id);
   const c = tribe.color;
 
   // Build exclusion set: anyone in a leadership slot should NOT appear in squad columns
@@ -304,7 +306,8 @@ function renderOrgSquadCol(sq, tribe, minW) {
                     title="Delete squad">🗑</button>
           </div>
           <span class="badge badge-grey">${hc}p</span>
-          <span class="badge ${utilClass(util)}">${util}%</span>
+          <span class="badge badge-grey" style="font-size:10px">${committed.toFixed(1)}p committed</span>
+          ${ragDot(rag)}
         </div>
       </div>
 
