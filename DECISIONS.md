@@ -24,9 +24,10 @@ implement and manage for a small internal team. Not suitable
 if individual audit trails are needed later.
 
 ## 2026-02-21: Railway over Vercel
-Chose Railway because Express + SQLite needs a persistent
-process. Vercel's serverless model doesn't support SQLite
-file storage. Railway runs the app as a normal Node process.
+Chose Railway because Express + PostgreSQL needs a persistent
+process. Vercel's serverless model doesn't support long-running
+servers. Railway runs the app as a normal Node process with
+managed Postgres and automatic daily backups.
 
 ## 2026-02-25: Component file split
 Split from single index.html into separate view files to
@@ -72,8 +73,8 @@ Railway Postgres paid plan includes automatic daily backups with 7-day
 retention, managed entirely by Railway (no code changes needed). To
 restore: Railway dashboard → Postgres service → Backups tab → select
 restore point. `seed.js` provides baseline recovery for fresh database
-instances. For complete data safety: manually export state via the app
-before any major infrastructure changes.
+instances. App also has "Download Backup" and "Restore from Backup" buttons
+for manual JSON export/import.
 
 ## 2026-02-27: Split squad assignments (secondarySquad)
 People can now belong to two squads at 50/50 split via a `secondarySquad` field.
@@ -105,3 +106,27 @@ state (initiativeDates, workProfiles, tribeLeadership, squadOrder) — prevents 
 default keys from persisting. An `_initialized` flag blocks `scheduleSave()` and
 `beforeunload` from firing before API data has loaded, preventing defaults from
 overwriting real data in the database.
+
+## 2026-02-28: Test suite permanently removed
+The test suite (`tests/api.test.js`) was connecting to the production database via
+`DATABASE_URL` and running `deleteState()` which wiped the seeded flag, causing
+data loss on every deploy cycle. Rather than risk this happening again, the test
+suite was permanently removed from the deploy workflow. Tests should not be
+re-added without a fully isolated `TEST_DATABASE_URL`.
+
+## 2026-02-28: Vacant role support
+Added vacancy tracking embedded in the people array (`isVacant: true`) rather than
+a separate data structure. Vacant roles have `vacancyStatus` (pending/approved) and
+optional `vacancyProject`. They appear as special cards in the org chart and are
+excluded from actual headcount calculations.
+
+## 2026-02-28: Discipline capacity breakdown
+Added per-squad discipline counts to org chart: 💻 Dev (engineers, tech leads, lead
+engineers) and 🔍 QE (quality engineers). Engineering Managers map to Delivery
+discipline, BAs to Product discipline. Discipline icons updated from earlier
+"Eng" label to "Dev" for clarity.
+
+## 2026-02-28: Swimlanes reverted
+Fixed-height swimlane bands were added to the org chart to group squads by tribe
+visually, but reverted because they weren't viable without auto-sort functionality.
+The existing tribe header + column layout was kept as-is.
