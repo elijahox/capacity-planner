@@ -155,6 +155,30 @@ function ragDot(rag) {
   return `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${colors[rag] || colors.green}" title="${rag.toUpperCase()}"></span>`;
 }
 
+// Swimlane lane definitions for org chart
+const SWIMLANES = [
+  { id: 'delivery',  label: 'DELIVERY',  slots: 1 },
+  { id: 'product',   label: 'PRODUCT',   slots: 1 },
+  { id: 'techlead',  label: 'TECH LEAD', slots: 1 },
+  { id: 'ba',        label: 'BA',        slots: 1 },
+  { id: 'engineers', label: 'ENGINEERS', slots: 6 },
+  { id: 'qe',        label: 'QE',        slots: 2 },
+];
+
+// Maps a role to a swimlane ID. Finer granularity than getDiscipline():
+// Tech Lead gets its own lane (not generic engineer), BA gets its own lane (not generic product).
+function getSwimLane(role) {
+  if (!role) return 'engineers';
+  const r = role.toLowerCase();
+  if (r.includes('tech lead')) return 'techlead';
+  if (r.includes('business analyst') || r.includes('associate ba')) return 'ba';
+  const disc = getDiscipline(role);
+  if (disc === 'delivery') return 'delivery';
+  if (disc === 'qe') return 'qe';
+  if (disc === 'product') return 'product';
+  return 'engineers';
+}
+
 function utilColor(pct) {
   if (pct > 100) return '#ef4444'; // --red
   if (pct >= 85)  return '#10b981'; // --green

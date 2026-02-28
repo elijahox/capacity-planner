@@ -711,6 +711,51 @@ canvas { display: block; }
 .org-drop-before { border-top: 2px solid var(--accent) !important; }
 .org-drop-after  { border-bottom: 2px solid var(--accent) !important; }
 
+/* ---- SWIMLANES ---- */
+.swimlane-band {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+}
+.swimlane-band:last-child { border-bottom: none; }
+.swimlane-band-even { background: transparent; }
+.swimlane-band-odd  { background: rgba(0,0,0,0.03); }
+.swimlane-placeholder {
+  border: 1.5px dashed var(--border);
+  border-radius: 7px;
+  min-height: 44px;
+}
+.swimlane-overflow {
+  font-size: 10px;
+  color: var(--amber);
+  margin-bottom: 2px;
+  font-family: 'JetBrains Mono', monospace;
+}
+.orgchart-lane-labels {
+  position: sticky;
+  left: 0;
+  z-index: 10;
+  background: var(--bg);
+  flex-shrink: 0;
+  width: 60px;
+}
+.orgchart-lane-label {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 8px;
+  font-size: 9px;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border-bottom: 1px solid var(--border);
+}
+.orgchart-lane-label:last-child { border-bottom: none; }
+
 /* ---- RESPONSIVE ---- */
 @media (max-width: 900px) {
   .sidebar { width: 52px; }
