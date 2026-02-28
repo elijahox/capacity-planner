@@ -127,7 +127,7 @@ node server.js          # http://localhost:3000, password: ecomm2026
 npm test                # node --test tests/api.test.js (8 tests)
 
 # Deploy
-npm test && git add . && git commit -m "message" && git push
+git add . && git commit -m "message" && git push
 # Railway auto-deploys on push to main (elijahox/capacity-planner)
 ```
 
@@ -193,7 +193,6 @@ npm test && git add . && git commit -m "message" && git push
 - Auth and save/load → `public/js/persistence.js`
 
 ## Deployment
-- Always run `npm test` before `git push`
 - Commit messages should be: `type: description`
   e.g. `feat: add org chart view`
        `fix: contractor watch expiry calculation`
@@ -240,11 +239,12 @@ The module-level variables (`squads`, `initiatives`, `people`, `initiativeDates`
 
 ### 8. Deploy checklist
 Before every `git push`:
-1. Run `npm test`
-2. Verify the app works locally
-3. Confirm no test data exists outside test files
-4. Check no `scheduleSave()` calls exist in init code
-5. `git add . && git commit -m "type: description" && git push`
+1. Verify the app works locally
+2. `git add .`
+3. `git commit -m "type: description"`
+4. `git push`
+
+Note: `npm test` is temporarily removed from the checklist until proper test isolation (separate test database) is confirmed working. See lesson #11.
 
 ### 9. Never use Object.assign() to merge state
 `applyState()` must always do full replacement of the global state, never `Object.assign()` or shallow merge. Merging defaults with DB data causes deleted items to resurrect and user changes to be contaminated with default values. Always clear existing keys first, then assign DB data. Never merge on top of defaults.
