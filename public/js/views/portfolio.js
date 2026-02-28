@@ -184,25 +184,39 @@ function renderPortfolioExpanded(init) {
 
     <div style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:8px">ROLE ESTIMATES</div>
     <div style="overflow-x:auto">
-      <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <table style="width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed">
+        <colgroup>
+          <col style="width:auto">
+          <col style="width:150px">
+          <col style="width:76px">
+          <col style="width:90px">
+          <col style="width:100px">
+          <col style="width:150px">
+          <col style="width:36px">
+        </colgroup>
         <thead>
           <tr style="border-bottom:1px solid var(--border)">
             <th style="text-align:left;padding:6px 8px;font-weight:600;font-size:11px;color:var(--text-muted)">Role</th>
-            <th style="text-align:right;padding:6px 8px;font-weight:600;font-size:11px;color:var(--text-muted)">Days</th>
-            <th style="text-align:right;padding:6px 8px;font-weight:600;font-size:11px;color:var(--text-muted)">Day Rate</th>
-            <th style="text-align:right;padding:6px 8px;font-weight:600;font-size:11px;color:var(--text-muted)">Budget</th>
+            <th style="text-align:left;padding:6px 8px;font-weight:600;font-size:11px;color:var(--text-muted)">Type</th>
+            <th style="text-align:left;padding:6px 8px;font-weight:600;font-size:11px;color:var(--text-muted)">Days</th>
+            <th style="text-align:left;padding:6px 8px;font-weight:600;font-size:11px;color:var(--text-muted)">Day Rate</th>
+            <th style="text-align:left;padding:6px 8px;font-weight:600;font-size:11px;color:var(--text-muted)">Budget</th>
             <th style="text-align:left;padding:6px 8px;font-weight:600;font-size:11px;color:var(--text-muted)">Squad</th>
-            <th style="width:36px"></th>
+            <th></th>
           </tr>
         </thead>
         <tbody>
-          ${roles.length === 0 ? `<tr><td colspan="6" style="padding:12px 8px;text-align:center;color:var(--text-dim);font-size:12px">No role estimates yet</td></tr>` : ''}
+          ${roles.length === 0 ? `<tr><td colspan="7" style="padding:12px 8px;text-align:center;color:var(--text-dim);font-size:12px">No role estimates yet</td></tr>` : ''}
           ${roles.map((r, idx) => `<tr style="border-bottom:1px solid var(--border)">
-            <td style="padding:4px 8px"><input type="text" value="${(r.role || '').replace(/"/g, '&quot;')}" placeholder="e.g. Senior Developer" style="width:100%;border:1px solid var(--border);border-radius:4px;padding:4px 6px;font-size:13px;background:var(--bg);color:var(--text)" onchange="updatePortfolioRole('${init.id}',${idx},'role',this.value)"></td>
-            <td style="padding:4px 8px"><input type="number" value="${r.days || ''}" min="0" style="width:70px;border:1px solid var(--border);border-radius:4px;padding:4px 6px;font-size:13px;text-align:right;font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--text)" onchange="updatePortfolioRole('${init.id}',${idx},'days',+this.value||0)"></td>
-            <td style="padding:4px 8px"><input type="number" value="${r.dayRate || ''}" min="0" style="width:85px;border:1px solid var(--border);border-radius:4px;padding:4px 6px;font-size:13px;text-align:right;font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--text)" onchange="updatePortfolioRole('${init.id}',${idx},'dayRate',+this.value||0)"></td>
-            <td style="padding:4px 8px"><input type="number" value="${r.budget || ''}" min="0" style="width:95px;border:1px solid var(--border);border-radius:4px;padding:4px 6px;font-size:13px;text-align:right;font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--text)" onchange="updatePortfolioRole('${init.id}',${idx},'budget',+this.value||0)"></td>
-            <td style="padding:4px 8px"><select style="border:1px solid var(--border);border-radius:4px;padding:4px 6px;font-size:13px;background:var(--bg);color:var(--text);max-width:150px" onchange="updatePortfolioRole('${init.id}',${idx},'squad',this.value)">
+            <td style="padding:4px 8px"><input type="text" value="${(r.role || '').replace(/"/g, '&quot;')}" placeholder="e.g. Senior Developer" style="width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:4px;padding:4px 6px;font-size:13px;background:var(--bg);color:var(--text)" onchange="updatePortfolioRole('${init.id}',${idx},'role',this.value)"></td>
+            <td style="padding:4px 8px"><select style="width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:4px;padding:4px 6px;font-size:13px;background:var(--bg);color:var(--text)" onchange="updatePortfolioRole('${init.id}',${idx},'type',this.value)">
+              <option value="contractor"${(r.type || 'contractor') === 'contractor' ? ' selected' : ''}>Contractor (CAPEX)</option>
+              <option value="perm"${r.type === 'perm' ? ' selected' : ''}>Permanent (OPEX)</option>
+            </select></td>
+            <td style="padding:4px 8px"><input type="number" value="${r.days || ''}" min="0" style="width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:4px;padding:4px 6px;font-size:13px;text-align:right;font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--text)" onchange="updatePortfolioRole('${init.id}',${idx},'days',+this.value||0)"></td>
+            <td style="padding:4px 8px"><input type="number" value="${r.dayRate || ''}" min="0" style="width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:4px;padding:4px 6px;font-size:13px;text-align:right;font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--text)" onchange="updatePortfolioRole('${init.id}',${idx},'dayRate',+this.value||0)"></td>
+            <td style="padding:4px 8px"><input type="number" value="${r.budget || ''}" min="0" style="width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:4px;padding:4px 6px;font-size:13px;text-align:right;font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--text)" onchange="updatePortfolioRole('${init.id}',${idx},'budget',+this.value||0)"></td>
+            <td style="padding:4px 8px"><select style="width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:4px;padding:4px 6px;font-size:13px;background:var(--bg);color:var(--text)" onchange="updatePortfolioRole('${init.id}',${idx},'squad',this.value)">
               <option value="">— None —</option>
               ${squadOpts.replace(`value="${r.squad}"`, `value="${r.squad}" selected`)}
             </select></td>
@@ -212,9 +226,10 @@ function renderPortfolioExpanded(init) {
         ${roles.length > 0 ? `<tfoot>
           <tr style="border-top:2px solid var(--border);font-weight:600;font-size:12px">
             <td style="padding:6px 8px">Total</td>
-            <td style="padding:6px 8px;text-align:right;font-family:'JetBrains Mono',monospace">${roles.reduce((a, r) => a + (r.days || 0), 0)}</td>
             <td style="padding:6px 8px"></td>
-            <td style="padding:6px 8px;text-align:right;font-family:'JetBrains Mono',monospace">${portfolioFmtBudget(roles.reduce((a, r) => a + (r.budget || 0), 0))}</td>
+            <td style="padding:6px 8px;font-family:'JetBrains Mono',monospace">${roles.reduce((a, r) => a + (r.days || 0), 0)}</td>
+            <td style="padding:6px 8px"></td>
+            <td style="padding:6px 8px;font-family:'JetBrains Mono',monospace">${portfolioFmtBudget(roles.reduce((a, r) => a + (r.budget || 0), 0))}</td>
             <td colspan="2"></td>
           </tr>
         </tfoot>` : ''}
@@ -233,6 +248,7 @@ function addPortfolioRole(initId) {
   init.estimatedRoles.push({
     id: 'er-' + Date.now(),
     role: '',
+    type: 'contractor',
     days: 0,
     dayRate: 0,
     budget: 0,
