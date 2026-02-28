@@ -47,7 +47,7 @@ function renderSquads() {
         <div style="font-family:'Inter',sans-serif;font-size:22px;font-weight:700;display:flex;align-items:center;gap:10px">
           <div style="width:12px;height:12px;border-radius:50%;background:${tribe.color}"></div>${sq.name}
         </div>
-        <div style="font-size:12px;color:var(--text-muted);margin-top:3px;display:flex;align-items:center;gap:4px">${tribe.name} Tribe · ${hc}p actual · ${committed.toFixed(1)}p committed ${ragPill(rag, total)} · ${sqPeople.filter(p=>p.type!=='perm').length} contractors</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:3px;display:flex;align-items:center;gap:4px">${tribe.name} Tribe · ${hc.toFixed(1)}p actual · ${committed.toFixed(1)}p committed ${ragPill(rag, total)} · ${sqPeople.filter(p=>p.type!=='perm').length} contractors</div>
       </div>
       <button class="btn btn-primary btn-sm" onclick="openAddPersonModal('${sq.id}')">+ Add Person</button>
     </div>
@@ -63,7 +63,7 @@ function renderSquads() {
         <div style="display:flex;gap:20px;margin-top:14px;font-size:12px;color:var(--text-muted)">
           <span>Allocated: <strong style="color:${utilColor(total)}">${Math.round(total)}%</strong></span>
           <span>Free: <strong>${rem}%</strong></span>
-          <span>Actual: <strong>${hc}</strong></span>
+          <span>Actual: <strong>${hc.toFixed(1)}</strong></span>
           <span>Committed: <strong>${committed.toFixed(1)}</strong></span>
           <span>~People on active work: <strong>${(total/100*hc).toFixed(1)}</strong></span>
         </div>
