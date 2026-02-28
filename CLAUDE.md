@@ -14,7 +14,7 @@
 capacity-planner/
 ├── server.js              # Express server, API routes, auth, serves public/
 ├── db.js                  # PostgreSQL setup, save/load state as single JSON blob
-├── seed.js                # Baseline seed data — updated via "Save as Seed" button
+├── seed.js                # Default state for seeding empty databases (auto-generated via Save as Seed)
 ├── public/
 │   ├── index.html         # App shell: CSS, nav, modal overlay, auth screen, <script> tags
 │   └── js/
@@ -156,7 +156,13 @@ git add . && git commit -m "type: description" && git push
 # Railway auto-deploys on push to main
 ```
 
-**Local dev requires `DATABASE_URL` in `.env`** (gitignored).
+**No automated tests** — the test suite was permanently removed (see Hard Lesson #13). Manual UI testing only.
+
+**Local dev requires `DATABASE_URL` in `.env`**:
+- Copy the Postgres connection string from the Railway dashboard (project → Postgres service → Variables → `DATABASE_URL`)
+- Paste it into `.env`: `DATABASE_URL=postgresql://...`
+- `.env` is gitignored and never committed
+- Alternatively, install Postgres locally and point `DATABASE_URL` at it
 
 **Environment variables** (set in Railway):
 - `PLANNER_PASSWORD` — team password
@@ -229,7 +235,7 @@ git add . && git commit -m "type: description" && git push
 Load order must be: fetch API → set state → render → THEN start polling/save cycle. Never before. Any deviation risks default data overwriting real database data.
 
 ### 2. Test data must never touch the database
-No test data in `db.js`, `seed.js`, `server.js`, or any init code. Only in test files (which are now deleted).
+Test data must never exist in `db.js`, `seed.js`, `server.js`, or any initialisation code. Claude Code must never write test state to the database under any circumstances.
 
 ### 3. The seeded flag is sacred
 The `store` table has two keys: `'state'` and `'seeded'`. Never delete the seeded flag in code. Only manually via Railway query editor if intentionally reseeding.
@@ -262,7 +268,6 @@ Before every `git push`:
 2. `git add .`
 3. `git commit -m "type: description"`
 4. `git push`
-DO NOT run `npm test` — test suite has been removed.
 
 ### 9. Never use Object.assign() to merge state
 `applyState()` must do full replacement, never merge. Merging defaults with DB data causes deleted items to resurrect. Always clear existing keys first, then assign DB data.
@@ -274,24 +279,29 @@ DO NOT run `npm test` — test suite has been removed.
 The test suite connected to production DB and wiped data on every run via `deleteState()`. Removed permanently. DO NOT add tests back without a fully isolated `TEST_DATABASE_URL` that never falls back to `DATABASE_URL`.
 
 ### 12. Debug the right layer first
-When data loss happens:
-1. Stop shipping fixes
-2. Check the database directly (Railway → Postgres → Data)
-3. Check Network tab for POST `/api/data` payload
-4. Run console query to verify DB contents
-5. Form one hypothesis, test in isolation
-"Always verify what your tools are actually doing to production, not what you assume they are doing."
+We spent weeks fixing symptoms (race conditions, Object.assign merges, 304 caching) while the root cause was a single line in `deleteState()` wiping the seeded flag on every test run. The one line summary: "Always verify what your tools are actually doing to production systems, not what you assume they are doing." When data loss happens:
+1. Stop shipping fixes immediately
+2. Add instrumentation first — logs, network tab, direct database queries
+3. Form one specific hypothesis
+4. Test it in isolation — one change, one deploy, one verification
+5. Confirm it works through 3 full deploy cycles before declaring victory
 
-### 13. Save as Seed before major changes
-Before risky work:
-1. Click "Save as Seed" in the app
+### 13. No automated tests — permanently removed
+The test suite was permanently removed because it connected to the production database and wiped data on every run. Every major data loss incident was caused by the test suite running `deleteState()` against production. `deleteState()` has also been removed from `db.js`.
+
+DO NOT add tests back under any circumstances without ALL of the following in place first:
+- A completely separate Postgres test database
+- `TEST_DATABASE_URL` configured in `.env`
+- Verified that `DATABASE_URL` is never touched during tests
+- `deleteState()` or equivalent tested against test DB only
+- At least 3 clean test runs confirmed before adding to deploy process
+
+Manual UI testing is the only testing approach until the above is in place.
+
+### 14. Use "Save as Seed" before major changes
+Before any significant feature work or risky deploy:
+1. Click "Save as Seed" in the app (Overview view)
 2. `git add seed.js`
 3. `git commit -m "chore: checkpoint seed data"`
 4. `git push`
-This makes your current data the recovery baseline.
-
-### 14. Never redeploy old deployments
-Always deploy by pushing a new commit. Old deployments have old code — redeploying them can reintroduce fixed bugs. Railway → always deploy from latest GitHub commit.
-
-### 15. Cache busting on all API calls
-All `GET /api/data` calls must include cache busting: `fetch('/api/data?t=' + Date.now())`. Server must return `Cache-Control: no-store` headers.
+This ensures the recovery baseline is always your latest stable data, not stale defaults. Export Backup (JSON download) provides an additional safety net independent of git.

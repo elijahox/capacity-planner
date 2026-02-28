@@ -94,11 +94,11 @@ squad creation, and rename operations.
 is in-flight. `beforeunload` handler fires `navigator.sendBeacon` for emergency
 saves when closing the tab with pending changes.
 
-## 2026-02-28: Test cleanup and seed merge
-Tests now call `deleteState()` in both `before()` and `after()` hooks so test data
-never persists in the database after a test run. `seedIfEmpty()` merges any surviving
-user data (initiativeDates, workProfiles, tribeLeadership, squadOrder) before
-seeding defaults, protecting customisations across re-seeds.
+## 2026-02-28: Test cleanup and seed merge (superseded)
+Test suite has been permanently removed — see "Save as Seed" decision below.
+`seedIfEmpty()` merges any surviving user data (initiativeDates, workProfiles,
+tribeLeadership, squadOrder) before seeding defaults, protecting customisations
+across re-seeds.
 
 ## 2026-02-28: Initialization guard and full state replacement
 `applyState()` now clears all existing keys before merging DB data for object-type
@@ -107,26 +107,8 @@ default keys from persisting. An `_initialized` flag blocks `scheduleSave()` and
 `beforeunload` from firing before API data has loaded, preventing defaults from
 overwriting real data in the database.
 
-## 2026-02-28: Test suite permanently removed
-The test suite (`tests/api.test.js`) was connecting to the production database via
-`DATABASE_URL` and running `deleteState()` which wiped the seeded flag, causing
-data loss on every deploy cycle. Rather than risk this happening again, the test
-suite was permanently removed from the deploy workflow. Tests should not be
-re-added without a fully isolated `TEST_DATABASE_URL`.
-
-## 2026-02-28: Vacant role support
-Added vacancy tracking embedded in the people array (`isVacant: true`) rather than
-a separate data structure. Vacant roles have `vacancyStatus` (pending/approved) and
-optional `vacancyProject`. They appear as special cards in the org chart and are
-excluded from actual headcount calculations.
-
-## 2026-02-28: Discipline capacity breakdown
-Added per-squad discipline counts to org chart: 💻 Dev (engineers, tech leads, lead
-engineers) and 🔍 QE (quality engineers). Engineering Managers map to Delivery
-discipline, BAs to Product discipline. Discipline icons updated from earlier
-"Eng" label to "Dev" for clarity.
-
-## 2026-02-28: Swimlanes reverted
-Fixed-height swimlane bands were added to the org chart to group squads by tribe
-visually, but reverted because they weren't viable without auto-sort functionality.
-The existing tribe header + column layout was kept as-is.
+## 2026-02-28: Save as Seed, Export/Import, test removal
+Added "Save as Seed" (`POST /api/seed`) to checkpoint live DB state into `seed.js` from
+the app UI. Added JSON export/import for manual backups. Removed test suite and
+`deleteState()` entirely — tests were connecting to production DB and corrupting data.
+Recovery strategy is now: Railway auto-backups + Save as Seed + JSON export.

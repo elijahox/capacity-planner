@@ -9,7 +9,7 @@
 
 ## Data Model
 - All state lives in a single object:
-  `{ squads, initiatives, people, initiativeDates, workProfiles, tribeLeadership, squadOrder, fy27PlannedHeadcount }`
+  `{ squads, initiatives, people, initiativeDates, workProfiles }`
 - Saved as one JSON blob in PostgreSQL under key `'state'`
 - Never split this into multiple DB tables without a migration plan
 - People array includes vacancy records (`isVacant: true`) — not a separate data structure
@@ -64,6 +64,6 @@
 - BAs → Product discipline
 
 ## Testing
-- Test suite has been permanently removed (see CLAUDE.md lesson #11)
-- DO NOT add tests back without a fully isolated `TEST_DATABASE_URL`
-- DO NOT run `npm test` — it is not part of the deploy workflow
+- No automated test suite — permanently removed (was corrupting production database)
+- Manual UI testing only until a properly isolated test database is set up
+- See CLAUDE.md Hard Lesson #13 for full context
