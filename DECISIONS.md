@@ -127,3 +127,6 @@ Added "Save as Seed" (`POST /api/seed`) to checkpoint live DB state into `seed.j
 the app UI. Added JSON export/import for manual backups. Removed test suite and
 `deleteState()` entirely — tests were connecting to production DB and corrupting data.
 Recovery strategy is now: Railway auto-backups + Save as Seed + JSON export.
+
+## 2026-03-01: Initiative assignment capacity reduction
+Initiative assignments now reduce home squad capacity. When a person (Dev/QE) is assigned to an approved/in_delivery initiative via estimatedRoles, their allocation percentage is subtracted from their home squad's available capacity. Org chart shows per-person assignment status and squad-level utilisation summary. Forecast view uses actual assignments where available, falling back to estimate-based calculations for unfilled roles. Overview shows total org utilisation. Moving to in_delivery soft-prompts if roles are unfilled.

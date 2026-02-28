@@ -329,6 +329,37 @@ function removePortfolioRole(initId, idx) {
 function advancePortfolioStatus(initId, newStatus) {
   const init = initiatives.find(i => i.id === initId);
   if (!init) return;
+
+  // Soft prompt when moving to in_delivery with unfilled roles
+  if (newStatus === 'in_delivery') {
+    const roles = init.estimatedRoles || [];
+    if (roles.length > 0) {
+      const filled = roles.filter(r => r.personId).length;
+      const unfilled = roles.length - filled;
+      if (unfilled > 0) {
+        openModal(`
+          <div class="modal-header">
+            <div class="modal-title">Unfilled Roles</div>
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+          </div>
+          <div class="modal-body">
+            <p style="margin:0 0 12px">${unfilled} of ${roles.length} role${roles.length !== 1 ? 's' : ''} are not yet assigned to a person. Move <strong>${init.name}</strong> to In Delivery anyway?</p>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="closeModal();_doAdvanceStatus('${initId}','${newStatus}')">Continue</button>
+          </div>`);
+        return;
+      }
+    }
+  }
+
+  _doAdvanceStatus(initId, newStatus);
+}
+
+function _doAdvanceStatus(initId, newStatus) {
+  const init = initiatives.find(i => i.id === initId);
+  if (!init) return;
   init.pipelineStatus = newStatus;
   // When activating, copy estimatedCapacity -> allocations
   if (newStatus === 'in_delivery') {

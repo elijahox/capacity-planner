@@ -316,6 +316,14 @@ function renderOrgSquadCol(sq, tribe, minW) {
           <div style="display:flex;justify-content:space-between;align-items:center">${hc.toFixed(1)}p actual ${ragPill(rag, util)}</div>
           <div>${committed.toFixed(1)}p committed</div>
           <div style="font-size:11px;margin-top:1px">💻 <span${disc.engineering === 0 ? ' style="color:var(--red)"' : ''}>${disc.engineering.toFixed(1)}p</span> dev  🔍 <span${disc.qe === 0 ? ' style="color:var(--red)"' : ''}>${disc.qe.toFixed(1)}p</span> QE</div>
+          ${(() => {
+            const cap = getSquadAvailableCapacity(sq.id);
+            if (cap.deliveryHeadcount > 0) {
+              const col = cap.utilisationPct > 100 ? 'var(--red)' : cap.utilisationPct > 85 ? 'var(--green)' : 'var(--text-muted)';
+              return `<div style="font-size:10px;margin-top:2px;color:${col};font-family:'JetBrains Mono',monospace">${cap.allocatedHeadcount.toFixed(1)} / ${cap.deliveryHeadcount.toFixed(1)} Dev+QE assigned · ${cap.availableHeadcount.toFixed(1)} avail</div>`;
+            }
+            return '';
+          })()}
           ${(() => { const vac = getSquadVacancies(sq.id); return vac.total > 0 ? `<div style="font-size:10px;color:var(--text-muted);margin-top:2px">${vac.total} vacant (${vac.approved} approved, ${vac.pending} pending)</div>` : ''; })()}
         </div>
       </div>
@@ -417,6 +425,7 @@ function renderOrgPersonCard(p, context) {
         ${vacancyBadge}
         ${sharedBadges}
         ${expiryHtml}
+        ${!isVacant ? _orgAssignmentBadge(p.id) : ''}
       </div>
       ${vacancyProject}
     </div>`;
@@ -891,6 +900,20 @@ function orgChartLeaderDrop(event, tribeId, slotIdx) {
   scheduleSave();
   orgChartRerender();
   renderSidebar();
+}
+
+// ── Assignment badge for person cards ─────────────────────────
+function _orgAssignmentBadge(personId) {
+  const pa = getPersonAssignments(personId);
+  if (pa.totalAllocated === 0) return '';
+  if (pa.totalAllocated > 100) {
+    return `<span class="badge" style="background:rgba(239,68,68,0.12);color:var(--red);font-size:10px;padding:1px 6px" title="${pa.assignments.map(a => a.initiativeName + ' ' + a.allocation + '%').join(', ')}">${pa.totalAllocated}% !</span>`;
+  }
+  if (pa.totalAllocated === 100) {
+    return `<span class="badge" style="background:var(--bg2);color:var(--text-dim);font-size:10px;padding:1px 6px" title="${pa.assignments.map(a => a.initiativeName + ' ' + a.allocation + '%').join(', ')}">100%</span>`;
+  }
+  // Partially assigned
+  return `<span class="badge" style="background:rgba(16,185,129,0.12);color:var(--green);font-size:10px;padding:1px 6px" title="${pa.assignments.map(a => a.initiativeName + ' ' + a.allocation + '%').join(', ')}">${pa.remaining}% avail</span>`;
 }
 
 // ── Helpers ───────────────────────────────────────────────────
