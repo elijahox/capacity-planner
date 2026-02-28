@@ -71,6 +71,9 @@ app.post('/api/auth', authLimiter, (req, res) => {
 
 // ── Load data ────────────────────────────────────────────────────
 app.get('/api/data', async (req, res) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.set('Pragma', 'no-cache');
+  res.set('Expires', '0');
   try {
     const data = await getData();
     res.json({ ok: true, data });
@@ -82,6 +85,9 @@ app.get('/api/data', async (req, res) => {
 
 // ── Save data ────────────────────────────────────────────────────
 app.post('/api/data', async (req, res) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.set('Pragma', 'no-cache');
+  res.set('Expires', '0');
   const { password, data } = req.body || {};
   if (!checkPassword(password, PASSWORD)) {
     return res.status(401).json({ ok: false, error: 'Unauthorised' });

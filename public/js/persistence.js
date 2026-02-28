@@ -183,7 +183,7 @@ async function submitAuth() {
 
 async function loadAndInit() {
   try {
-    const res = await fetch('/api/data');
+    const res = await fetch('/api/data?t=' + Date.now());
     const json = await res.json();
     if (json.data) applyState(json.data);
   } catch(e) {
@@ -205,7 +205,7 @@ async function loadAndInit() {
         return;
       }
       try {
-        const r = await fetch('/api/data');
+        const r = await fetch('/api/data?t=' + Date.now());
         const j = await r.json();
         if (j.data) {
           const orgChart = document.getElementById('orgchart-scroll');
