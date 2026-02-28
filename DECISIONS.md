@@ -24,9 +24,10 @@ implement and manage for a small internal team. Not suitable
 if individual audit trails are needed later.
 
 ## 2026-02-21: Railway over Vercel
-Chose Railway because Express + SQLite needs a persistent
-process. Vercel's serverless model doesn't support SQLite
-file storage. Railway runs the app as a normal Node process.
+Chose Railway because Express + PostgreSQL needs a persistent
+process. Vercel's serverless model doesn't support long-running
+servers. Railway runs the app as a normal Node process with
+managed Postgres and automatic daily backups.
 
 ## 2026-02-25: Component file split
 Split from single index.html into separate view files to
@@ -72,8 +73,8 @@ Railway Postgres paid plan includes automatic daily backups with 7-day
 retention, managed entirely by Railway (no code changes needed). To
 restore: Railway dashboard → Postgres service → Backups tab → select
 restore point. `seed.js` provides baseline recovery for fresh database
-instances. For complete data safety: manually export state via the app
-before any major infrastructure changes.
+instances. App also has "Download Backup" and "Restore from Backup" buttons
+for manual JSON export/import.
 
 ## 2026-02-27: Split squad assignments (secondarySquad)
 People can now belong to two squads at 50/50 split via a `secondarySquad` field.

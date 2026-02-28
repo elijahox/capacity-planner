@@ -1,10 +1,12 @@
 # CLAUDE.md — Capacity Planner
 
 ## Project Overview
-- **What**: Internal capacity planning tool for C&S Ecomm Experience teams
-- **Live URL**: https://capacity-planner-production-e917.up.railway.app
+- **What**: Capacity planning tool for C&S Ecomm Experience delivery teams
+- **Live URL**: https://capacityplanner.net
 - **Stack**: Node.js + Express + PostgreSQL (pg) + vanilla JS frontend
-- **Auth**: Single shared team password (`PLANNER_PASSWORD` env var, default `ecomm2026`)
+- **User**: Single user (Elijah)
+- **GitHub**: elijahox/capacity-planner
+- **Hosting**: Railway — auto-deploys from `main` branch on `git push`
 
 ## Architecture
 
@@ -16,37 +18,36 @@ capacity-planner/
 ├── public/
 │   ├── index.html         # App shell: CSS, nav, modal overlay, auth screen, <script> tags
 │   └── js/
-│       ├── data.js        # squads, initiatives, people, initiativeDates, workProfiles
+│       ├── data.js        # Default state: squads, initiatives, people, etc.
 │       ├── utils.js       # Helper functions: dates, currency, badge classes, allocation calc
-│       ├── persistence.js # Auth, save/load, 30s polling, auto-save (1.2s debounce)
+│       ├── persistence.js # Auth, save/load, polling, auto-save (1.2s debounce)
 │       ├── app.js         # View router, renderSidebar, openModal/closeModal, boot IIFE
 │       └── views/
-│           ├── overview.js
-│           ├── squads.js
-│           ├── people.js
-│           ├── orgchart.js    # Two-tier org chart: tribes → squads → person cards, drag-and-drop
-│           ├── contractors.js
-│           ├── initiatives.js
-│           ├── pipeline.js    # Pipeline view: status filter, table, modal, status advancement
-│           ├── roadmap.js
-│           ├── demand.js      # Includes profile editor modal + canvas drawing
-│           └── financials.js
+│           ├── overview.js    # Summary stats, FY27 planned headcount
+│           ├── squads.js      # Capacity overview + commitment heat map tabs
+│           ├── orgchart.js    # Tribes → squads → person cards, leadership, vacancies, drag-drop
+│           ├── people.js      # People register: all staff, filter by type, CSV import
+│           ├── contractors.js # Contractor watch: expiring contracts
+│           ├── initiatives.js # Allocation management
+│           ├── pipeline.js    # Business case tracking: submitted → approved → in_delivery → complete
+│           ├── roadmap.js     # Initiative timeline
+│           ├── demand.js      # Work profiles + canvas chart
+│           └── financials.js  # Cost tracking
 ```
 
 **Script load order** (index.html): `data.js → utils.js → persistence.js → views/*.js → app.js`
 
-### Key functions by file
-
-| File | Key functions |
-|------|--------------|
-| `utils.js` | `getSquadAllocation`, `getEffectiveSquadSize`, `utilColor/Class/Label`, `getExpiryClass/Label`, `parseCSV`, `parseCsvDate`, `parseCsvDayRate`, `parseCsvType`, `matchSquadByName` |
-| `persistence.js` | `submitAuth`, `loadAndInit`, `persistSave`, `scheduleSave`, `applyState`, `collectState` |
-| `app.js` | `renderSidebar`, `showView`, `renderContent`, `openModal`, `closeModal`, boot IIFE |
-| `views/people.js` | `renderPeople`, `openPersonModal`, `savePerson`, `openAddPersonModal`, `addPerson`, `openCsvImportModal`, `processCsvImport`, `importPeopleFromCsv` |
-| `views/orgchart.js` | `renderOrgChart`, `renderOrgTribeGroup`, `renderOrgSquadCol`, `renderOrgPersonCard`, `orgChartRenameSquad`, `orgChartNewSquad`, `orgChartConfirmNewSquad`, `orgChartDragStart/End/Over/Leave/Drop` |
-| `views/demand.js` | `renderDemand`, `drawDemandChart`, `openProfileEditor`, `applyProfilePreset_v2`, `saveProfileAndClose` |
-| `views/pipeline.js` | `renderPipeline`, `setPipelineFilter`, `openPipelineModal`, `savePipelineModal`, `advancePipelineStatus`, `fmtBudget`, `getPipelineStatusClass/Label` |
-| `views/squads.js` | `renderSquads`, `setSquadsTab`, `renderHeatMap`, `showHeatTip`, `hideHeatTip` |
+## Current Views
+- **Overview** — summary stats, FY27 planned headcount
+- **Squads** — capacity overview + commitment heat map tabs
+- **Org Chart** — tribes, squads, people, leadership, vacancy cards, discipline counts
+- **People Register** — all staff, filter by type, CSV import
+- **Contractor Watch** — expiring contracts grouped by urgency
+- **Initiatives** — allocation management
+- **Pipeline** — business case tracking (submitted → approved → in_delivery → complete)
+- **Roadmap** — initiative timeline
+- **Demand** — work profiles + peak collision analysis
+- **Financials** — cost tracking
 
 ## API Routes
 
@@ -62,6 +63,18 @@ capacity-planner/
 All state is saved as a single JSON blob in PostgreSQL under key `'state'`.
 
 ```js
+// Top-level state keys (managed by collectState/applyState):
+{
+  squads,              // array
+  initiatives,         // array
+  people,              // array
+  initiativeDates,     // object
+  workProfiles,        // object
+  tribeLeadership,     // object
+  squadOrder,          // object
+  fy27PlannedHeadcount // number or null
+}
+
 // squads — tribes: web, range, app, cp
 { id, tribe, name, size }
 
@@ -75,46 +88,62 @@ All state is saved as a single JSON blob in PostgreSQL under key `'state'`.
   expectedDuration,                       // weeks (number) or null
   sponsor,                                // string or null
   pipelineStatus }                        // 'submitted'|'approved'|'in_delivery'|'complete'
-// On activation (→ in_delivery), estimatedCapacity is copied into allocations
 
 // people
-{ id, name, squad, role, type ('perm'|'contractor'|'msp'),
-  dayRate, agency, startDate, endDate, status ('active'|'inactive'),
-  nextAction, actionStatus, comments }
+{ id, name, squad, secondarySquad,        // secondarySquad = 50/50 split
+  role, type ('perm'|'contractor'|'msp'),
+  dayRate, agency, startDate, endDate,
+  status ('active'|'inactive'),
+  nextAction, actionStatus, comments,
+  isVacant,                               // boolean — vacant role slot
+  vacancyStatus,                          // 'pending'|'approved'|null
+  vacancyProject }                        // string or null
 
+// tribeLeadership — { tribeId: [personId x4] }  (4 leadership slots per tribe)
+// squadOrder      — { squadId: [personId, ...] } (explicit display ordering)
 // initiativeDates — { initId: { start: 'YYYY-MM-DD', end: 'YYYY-MM-DD' } }
-// workProfiles    — { initId: [weeklyPct, ...] }  (index 0 = first week of initiative)
+// workProfiles    — { initId: [weeklyPct, ...] } (index 0 = first week)
+// fy27PlannedHeadcount — number or null (editable on Overview)
 ```
+
+## Capacity Logic
+- **Actual headcount** = dynamic count from people array (excludes `isVacant`, counts `secondarySquad` as 0.5)
+- **Committed headcount** = `(totalAllocationPct / 100) * squad.size`
+- **RAG status**: Green = fully staffed, Amber = 1–2 people short, Red = 3+ short or over-allocated
+- **Discipline counts**:
+  - 💻 Dev = engineers, tech leads, lead engineers
+  - 🔍 QE = quality engineers
+  - Engineering Managers = Delivery discipline
+  - BAs = Product discipline
+
+## Tribes and Colours
+| Tribe | Colour |
+|-------|--------|
+| Web | `#1a5276` |
+| Range | `#1e8449` |
+| App | `#6c3483` |
+| Customer Platform | `#c17f24` |
 
 ## Key Concepts
 
 **Work profiles** — each initiative has a weekly % capacity shape (bell curve by default) rather than a flat allocation. The profile drives the demand chart. Edit via the ✏ Profile button in the Demand Chart view.
 
-**Demand chart** — overlays initiative work profiles as weekly line/area curves over a Jan 2025–Dec 2026 window. Shows peak collision analysis: flags months where combined demand exceeds 100%.
+**Org chart** — two-tier visual: tribe header nodes (coloured by tribe) across the top, squad columns below. Person cards are draggable (HTML5 API) between squads. Squad names are double-click renameable. New squads can be added per tribe. Supports leadership slots (4 per tribe), vacancy cards, discipline counts (Dev/QE), and explicit card ordering via `squadOrder`.
 
-**Org chart** — two-tier visual: tribe header nodes (coloured by tribe) across the top, squad columns below connected by horizontal bar + vertical drops in tribe colour. Person cards are draggable (HTML5 API) between squads; drop updates `person.squad`, recalculates headcount, and auto-saves. Squad names are double-click renameable inline. New squads can be added per tribe via an inline form at the end of each tribe row. Nav position: between People Register and Contractor Watch.
+**Pipeline** — tracks initiatives through status stages: `submitted` → `approved` → `in_delivery` → `complete`. Each initiative carries `estimatedCapacity` (pre-approval planning) separate from `allocations` (feeds utilisation). On activation, `estimatedCapacity` is copied into `allocations`.
 
-**Contractor watch** — groups non-perm active people by contract expiry: expired, <14d, 14–30d, 30–90d, 90+. Badge on nav button shows count expiring within 30 days.
+**Commitment Heat Map** — tab within the Squads view. Rows = squads grouped by tribe, columns = next 12 months. Committed % from `approved`/`in_delivery` initiatives; pending % from `submitted` initiatives. Colour-coded cells; dashed amber border for pending demand.
 
-**Pipeline** — tracks initiatives through status stages: `submitted` (pending) → `approved` (committed) → `in_delivery` (active) → `complete`. Each initiative carries `estimatedCapacity` (pre-approval planning map) separate from `allocations` (what feeds utilisation). Quick-action buttons advance status; on activation, `estimatedCapacity` is copied into `allocations`.
+**Vacancies** — embedded in the people array as records with `isVacant: true`. Can have `vacancyStatus` (pending/approved) and `vacancyProject`. Excluded from actual headcount calculations. Displayed as special cards in the org chart.
 
-**Commitment Heat Map** — tab within the Squads view. Rows = squads grouped by tribe, columns = next 12 months. Committed % = sum of `allocations` from `approved`/`in_delivery` initiatives whose date range overlaps that month. Pending % = `estimatedCapacity` from `submitted` initiatives. Cells are colour-coded; dashed amber border indicates pending demand exists.
-
-**Utilisation** — calculated from `getSquadAllocation()` which sums `allocations` across all initiatives. `getEffectiveSquadSize()` uses people register headcount (falls back to `squad.size` if empty).
-
-**CSV import (People Register)** — "↑ Import CSV" button opens a modal with a file picker and column-mapping reference. Logic in `importPeopleFromCsv(csvText)`:
-- Skips any row where `Type = Permanent` (case-insensitive); also never overwrites existing `perm` records
-- Matches existing contractors/MSPs by name (case-insensitive); updates via `Object.assign` or pushes a new record
-- Accepts date formats: `DD/MM/YYYY`, `D/M/YY`, `YYYY-MM-DD`, `DD-MMM-YY`, natural language
-- Day rate fields must be quoted in the CSV if they contain commas (e.g. `"$1,350"`) — standard Excel export behaviour
-- Returns `{ added, updated, skipped }`; `scheduleSave()` is called after import
+**CSV import (People Register)** — "↑ Import CSV" button opens a modal with a file picker. Skips `Type = Permanent` rows; matches existing contractors/MSPs by name. Accepts multiple date formats. Returns `{ added, updated, skipped }`.
 
 ## Auth Flow
 
 1. On load: check `sessionStorage.cp_pw` → verify with `/api/auth` → skip login screen if valid
 2. Login: POST to `/api/auth`, store password in `_sessionPassword` + `sessionStorage`
 3. Every save: POST to `/api/data` with `{ password, data: collectState() }`
-4. 60s polling: GET `/api/data`, call `applyState()` to merge remote changes
+4. Polling: GET `/api/data`, call `applyState()` to merge remote changes
 
 ## Dev Workflow
 
@@ -123,8 +152,8 @@ All state is saved as a single JSON blob in PostgreSQL under key `'state'`.
 node server.js          # http://localhost:3000, password: ecomm2026
 
 # Deploy
-git add . && git commit -m "message" && git push
-# Railway auto-deploys on push to main (elijahox/capacity-planner)
+git add . && git commit -m "type: description" && git push
+# Railway auto-deploys on push to main
 ```
 
 **No automated tests** — the test suite was permanently removed (see Hard Lesson #13). Manual UI testing only.
@@ -145,7 +174,7 @@ git add . && git commit -m "message" && git push
 **Adding a new view**:
 1. Create `public/js/views/myview.js` with `function renderMyView() { return \`...\`; }`
 2. Add `<script src="js/views/myview.js"></script>` to `index.html` before `app.js`
-3. Add nav button in `index.html`: `<button class="nav-btn" onclick="showView('myview',this)">My View</button>`
+3. Add nav button in `index.html`
 4. Add `myview: renderMyView` to the `views` object in `renderContent()` in `app.js`
 
 **Modifying data model**:
@@ -176,6 +205,7 @@ git add . && git commit -m "message" && git push
 - Before any large change, summarise your approach in plain English and wait for confirmation
 - Never change CSS variables or base styles unless the task explicitly asks for it
 - After completing any task that introduces a new pattern, architectural decision, or convention, update DECISIONS.md with what was decided and why. Keep entries concise — 2–3 sentences maximum.
+- DO NOT run `npm test` — the test suite has been removed (see lesson #11).
 
 ## Scoping Rules
 - UI changes → `public/js/views/[viewname].js`
@@ -193,59 +223,60 @@ git add . && git commit -m "message" && git push
        `refactor: split views into separate files`
        `style: UI refresh slate blue palette`
 
-## Hard Lessons Learned
+## Backup Strategy
+1. **Railway automatic daily backups** (7-day retention)
+2. **"Save as Seed" button** — checkpoints current data to `seed.js`
+3. **"Download Backup" button** — exports JSON to local machine
+4. **"Restore from Backup" button** — imports JSON back
+
+## Hard Lessons Learned (CRITICAL — READ EVERY SESSION)
 
 ### 1. Never save during initialisation
-The app must never call `scheduleSave()` or `persistSave()` during the startup sequence. The load order must always be:
-1. Fetch state from API
-2. Set global state from API response
-3. Render app
-4. THEN start polling and save cycle
-
-Any deviation from this order risks a race condition where default data overwrites real database data.
+Load order must be: fetch API → set state → render → THEN start polling/save cycle. Never before. Any deviation risks default data overwriting real database data.
 
 ### 2. Test data must never touch the database
 Test data must never exist in `db.js`, `seed.js`, `server.js`, or any initialisation code. Claude Code must never write test state to the database under any circumstances.
 
 ### 3. The seeded flag is sacred
-The `store` table has two keys: `'state'` and `'seeded'`. The `'seeded'` flag is a one-way door — once written it must never be overwritten or deleted except by a deliberate manual action in the Railway query editor. No code should ever delete or overwrite the seeded flag.
+The `store` table has two keys: `'state'` and `'seeded'`. Never delete the seeded flag in code. Only manually via Railway query editor if intentionally reseeding.
 
-### 4. Seed data must match production data shape
-`seed.js` must always be rebuilt from `public/js/data.js` when people or squads are added. It must never contain empty arrays, test data, or placeholder values. After any significant data change, update `seed.js` to match.
+### 4. seed.js must match production data shape
+After significant people/squad changes, update `seed.js` using the "Save as Seed" button in the app. Never let `seed.js` contain test data or empty arrays.
 
 ### 5. Scroll position must be preserved on every re-render
-Every function that calls `renderOrgChart()` or any view re-render must save and restore scroll position using `requestAnimationFrame`. This applies to: drag-drop, modal save, inline edit, polling, squad rename, leadership changes, add person. Use the pattern:
+Every `renderOrgChart()` call must save/restore scroll:
 ```js
-const scrollLeft = container?.scrollLeft || 0;
-const scrollTop = window.scrollY;
+const el = document.getElementById('org-chart-scroll');
+const sl = el?.scrollLeft || 0;
+const st = window.scrollY;
 render();
 requestAnimationFrame(() => {
-  if (container) container.scrollLeft = scrollLeft;
-  window.scrollTo(0, scrollTop);
+  if (el) el.scrollLeft = sl;
+  window.scrollTo(0, st);
 });
 ```
 
 ### 6. Event listeners must be cleaned up
-Never add event listeners inside render functions without cleanup. Use event delegation on parent containers instead of attaching listeners to individual cards. Always clear intervals before setting new ones (`pollInterval`, `saveTimeout`).
+Use event delegation on parent containers. Never add listeners inside render functions without cleanup. Always clear intervals before setting new ones.
 
 ### 7. Global state is the single source of truth
-The module-level variables (`squads`, `initiatives`, `people`, `initiativeDates`, `workProfiles`, `tribeLeadership`, `squadOrder`) are the only source of truth. When a modal saves, it must update these globals directly before calling `scheduleSave()`. Never update only the DOM or a local copy — the global state must always reflect reality before a save is triggered.
+The module-level variables (`squads`, `initiatives`, `people`, `initiativeDates`, `workProfiles`, `tribeLeadership`, `squadOrder`, `fy27PlannedHeadcount`) are the only source of truth. Modal saves must update these globals BEFORE calling `scheduleSave()`. Never update DOM only.
 
 ### 8. Deploy checklist
 Before every `git push`:
-1. Verify the app works locally
+1. Verify app works locally
 2. `git add .`
 3. `git commit -m "type: description"`
 4. `git push`
 
 ### 9. Never use Object.assign() to merge state
-`applyState()` must always do full replacement of the global state, never `Object.assign()` or shallow merge. Merging defaults with DB data causes deleted items to resurrect and user changes to be contaminated with default values. Always clear existing keys first, then assign DB data. Never merge on top of defaults.
+`applyState()` must do full replacement, never merge. Merging defaults with DB data causes deleted items to resurrect. Always clear existing keys first, then assign DB data.
 
 ### 10. Guard scheduleSave() with an _initialized flag
-`scheduleSave()` must check `_initialized === true` before doing anything. Set `_initialized = true` only after the API data has been fully loaded and applied. This prevents any stray event handler or `beforeunload` from writing default state to the database during boot.
+`scheduleSave()` must check `_initialized === true` before doing anything. Set `_initialized = true` only after API data fully loaded. Prevents default state from overwriting real data during boot.
 
-### 11. npm test was nuking the production database
-`deleteState()` used to delete both `'state'` AND `'seeded'` keys. Tests ran against the production `DATABASE_URL` (from `.env`). The deploy checklist said to run `npm test` before every push. So every deploy cycle: (1) `npm test` deletes the seeded flag, (2) `git push` triggers Railway deploy, (3) server starts, `seedIfEmpty()` sees no seeded flag, re-seeds with defaults → user data lost. Fix: `deleteState()` now only deletes `'state'`, never `'seeded'`. The test script also sets `NODE_ENV=test`. Always use `TEST_DATABASE_URL` when available to isolate tests from production.
+### 11. Tests were permanently removed
+The test suite connected to production DB and wiped data on every run via `deleteState()`. Removed permanently. DO NOT add tests back without a fully isolated `TEST_DATABASE_URL` that never falls back to `DATABASE_URL`.
 
 ### 12. Debug the right layer first
 We spent weeks fixing symptoms (race conditions, Object.assign merges, 304 caching) while the root cause was a single line in `deleteState()` wiping the seeded flag on every test run. The one line summary: "Always verify what your tools are actually doing to production systems, not what you assume they are doing." When data loss happens:

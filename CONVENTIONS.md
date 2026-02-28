@@ -12,18 +12,22 @@
   `{ squads, initiatives, people, initiativeDates, workProfiles }`
 - Saved as one JSON blob in PostgreSQL under key `'state'`
 - Never split this into multiple DB tables without a migration plan
+- People array includes vacancy records (`isVacant: true`) — not a separate data structure
+- `secondarySquad` enables 50/50 split membership (counts 0.5 headcount each)
 
 ## Rendering Pattern
 - Views are functions that return HTML strings
 - Injected via `innerHTML` in `app.js` `renderContent()`
 - Any JS that depends on rendered DOM uses `setTimeout(..., 0)`
 - Canvas-based charts redraw completely on every update — no partial updates
+- Org chart re-renders must preserve scroll position (see CLAUDE.md lesson #5)
 
 ## Auto-save Pattern
 - Every data change calls `scheduleSave()`
 - `scheduleSave` debounces 1.2s then calls `persistSave()`
 - `persistSave` POSTs full state to `/api/data`
 - Never save partial state — always send the full object
+- `scheduleSave()` is guarded by `_initialized` flag — no saves during boot
 
 ## Adding a New View
 1. Create `public/js/views/newview.js`
@@ -38,6 +42,7 @@
 - Cards: `border-radius: 10px`, `1px solid var(--border)`, subtle `box-shadow`
 - Interactive elements always have a hover state
 - Fonts: Inter for UI, JetBrains Mono for numbers/code/dates
+- Tribe colours: Web `#1a5276`, Range `#1e8449`, App `#6c3483`, CP `#c17f24`
 
 ## Filter / Tab State (Sentinel Pattern)
 - Module-level `let _xyzFilter = 'all'` + `let _xyzFilterActive = false`
@@ -51,6 +56,12 @@
 - Cell elements use `onmouseenter="showHeatTip(event,'tipId')"` / `onmouseleave="hideHeatTip()"`
 - `showHeatTip` positions a `position:fixed` div using `event.clientX` / `event.clientY`
 - Never encode tooltip HTML in data attributes — too fragile with quotes and special characters
+
+## Discipline Icons
+- 💻 Dev = engineers, tech leads, lead engineers
+- 🔍 QE = quality engineers
+- Engineering Managers → Delivery discipline
+- BAs → Product discipline
 
 ## Testing
 - No automated test suite — permanently removed (was corrupting production database)
