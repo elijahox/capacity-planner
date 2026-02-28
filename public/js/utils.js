@@ -73,7 +73,16 @@ function getSquadRAG(squadId) {
   return 'red';
 }
 
-// Returns a coloured RAG dot as inline HTML
+// Returns a coloured RAG pill with dot + percentage as inline HTML
+function ragPill(rag, pct) {
+  const colors = { green: 'var(--green)', amber: 'var(--amber)', red: 'var(--red)' };
+  const col = colors[rag] || colors.green;
+  return `<span style="display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:600;
+    padding:1px 6px;border-radius:9px;background:color-mix(in srgb, ${col} 15%, transparent);color:${col};
+    white-space:nowrap;line-height:1.2" title="${rag.toUpperCase()}"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${col}"></span>${Math.round(pct)}%</span>`;
+}
+
+// Simple RAG dot (no percentage) for compact use
 function ragDot(rag) {
   const colors = { green: 'var(--green)', amber: 'var(--amber)', red: 'var(--red)' };
   return `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${colors[rag] || colors.green}" title="${rag.toUpperCase()}"></span>`;

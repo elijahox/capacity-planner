@@ -281,33 +281,35 @@ function renderOrgSquadCol(sq, tribe, minW) {
          ondrop="orgChartDrop(event,'${sq.id}')">
 
       <!-- Squad header -->
-      <div style="padding:10px 12px;border-bottom:1px solid var(--border);background:var(--surface2)">
-        <div style="display:flex;align-items:center;gap:6px">
-          <div style="flex:1;display:flex;align-items:center;gap:4px;min-width:0">
+      <div style="padding:8px 12px;border-bottom:1px solid var(--border);background:var(--surface2)">
+        <div style="display:flex;align-items:center;gap:4px">
+          <div style="flex:1;min-width:0">
             <div class="orgchart-squad-name"
                  id="squad-name-${sq.id}"
                  ondblclick="orgChartRenameSquad('${sq.id}',this)"
                  title="Double-click to rename"
                  style="font-family:'Inter',sans-serif;font-weight:700;font-size:13px;
                         cursor:default;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${sq.name}</div>
-            <button class="squad-edit-pencil"
-                    onclick="orgChartRenameSquadBtn('${sq.id}')"
-                    style="background:none;border:none;cursor:pointer;color:var(--text-dim);
-                           font-size:12px;padding:0 2px;line-height:1;flex-shrink:0;opacity:0;
-                           transition:opacity 0.1s"
-                    title="Rename squad">✏</button>
-            <button class="squad-delete-btn"
-                    onclick="orgChartDeleteSquad('${sq.id}',event)"
-                    style="background:none;border:none;cursor:pointer;color:var(--text-dim);
-                           font-size:11px;padding:0 2px;line-height:1;flex-shrink:0;opacity:0;
-                           transition:opacity 0.1s,color 0.15s"
-                    onmouseenter="this.style.color='var(--red)'"
-                    onmouseleave="this.style.color='var(--text-dim)'"
-                    title="Delete squad">🗑</button>
           </div>
-          <span class="badge badge-grey">${hc}p</span>
-          <span class="badge badge-grey" style="font-size:10px">${committed.toFixed(1)}p committed</span>
-          ${ragDot(rag)}
+          <button class="squad-edit-pencil"
+                  onclick="orgChartRenameSquadBtn('${sq.id}')"
+                  style="background:none;border:none;cursor:pointer;color:var(--text-dim);
+                         font-size:12px;padding:0 2px;line-height:1;flex-shrink:0;opacity:0;
+                         transition:opacity 0.1s"
+                  title="Rename squad">✏</button>
+          <button class="squad-delete-btn"
+                  onclick="orgChartDeleteSquad('${sq.id}',event)"
+                  style="background:none;border:none;cursor:pointer;color:var(--text-dim);
+                         font-size:11px;padding:0 2px;line-height:1;flex-shrink:0;opacity:0;
+                         transition:opacity 0.1s,color 0.15s"
+                  onmouseenter="this.style.color='var(--red)'"
+                  onmouseleave="this.style.color='var(--text-dim)'"
+                  title="Delete squad">🗑</button>
+        </div>
+        <div style="font-size:12px;color:var(--text-muted);line-height:1.2;margin-top:2px;display:flex;align-items:center;gap:6px">
+          <span>${hc}p actual</span>
+          <span>${committed.toFixed(1)}p committed</span>
+          ${ragPill(rag, util)}
         </div>
       </div>
 
