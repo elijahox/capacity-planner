@@ -254,3 +254,11 @@ Before every `git push`:
 
 ### 11. npm test was nuking the production database
 `deleteState()` used to delete both `'state'` AND `'seeded'` keys. Tests ran against the production `DATABASE_URL` (from `.env`). The deploy checklist said to run `npm test` before every push. So every deploy cycle: (1) `npm test` deletes the seeded flag, (2) `git push` triggers Railway deploy, (3) server starts, `seedIfEmpty()` sees no seeded flag, re-seeds with defaults → user data lost. Fix: `deleteState()` now only deletes `'state'`, never `'seeded'`. The test script also sets `NODE_ENV=test`. Always use `TEST_DATABASE_URL` when available to isolate tests from production.
+
+### 12. Debug the right layer first
+We spent weeks fixing symptoms (race conditions, Object.assign merges, 304 caching) while the root cause was a single line in `deleteState()` wiping the seeded flag on every test run. The one line summary: "Always verify what your tools are actually doing to production systems, not what you assume they are doing." When data loss happens:
+1. Stop shipping fixes immediately
+2. Add instrumentation first — logs, network tab, direct database queries
+3. Form one specific hypothesis
+4. Test it in isolation — one change, one deploy, one verification
+5. Confirm it works through 3 full deploy cycles before declaring victory
