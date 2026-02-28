@@ -199,3 +199,58 @@ npm test && git add . && git commit -m "message" && git push
        `fix: contractor watch expiry calculation`
        `refactor: split views into separate files`
        `style: UI refresh slate blue palette`
+
+## Hard Lessons Learned
+
+### 1. Never save during initialisation
+The app must never call `scheduleSave()` or `persistSave()` during the startup sequence. The load order must always be:
+1. Fetch state from API
+2. Set global state from API response
+3. Render app
+4. THEN start polling and save cycle
+
+Any deviation from this order risks a race condition where default data overwrites real database data.
+
+### 2. Test data must never touch the database
+Test data (`TEST SQUAD ONLY`, `Alice`, `test-s1` etc.) must only exist inside `tests/api.test.js`. Never in `db.js`, `seed.js`, `server.js`, or any initialisation code. Claude Code must never write test state to the database under any circumstances.
+
+### 3. The seeded flag is sacred
+The `store` table has two keys: `'state'` and `'seeded'`. The `'seeded'` flag is a one-way door — once written it must never be overwritten or deleted except by a deliberate manual action in the Railway query editor. No code should ever delete or overwrite the seeded flag.
+
+### 4. Seed data must match production data shape
+`seed.js` must always be rebuilt from `public/js/data.js` when people or squads are added. It must never contain empty arrays, test data, or placeholder values. After any significant data change, update `seed.js` to match.
+
+### 5. Scroll position must be preserved on every re-render
+Every function that calls `renderOrgChart()` or any view re-render must save and restore scroll position using `requestAnimationFrame`. This applies to: drag-drop, modal save, inline edit, polling, squad rename, leadership changes, add person. Use the pattern:
+```js
+const scrollLeft = container?.scrollLeft || 0;
+const scrollTop = window.scrollY;
+render();
+requestAnimationFrame(() => {
+  if (container) container.scrollLeft = scrollLeft;
+  window.scrollTo(0, scrollTop);
+});
+```
+
+### 6. Event listeners must be cleaned up
+Never add event listeners inside render functions without cleanup. Use event delegation on parent containers instead of attaching listeners to individual cards. Always clear intervals before setting new ones (`pollInterval`, `saveTimeout`).
+
+### 7. Global state is the single source of truth
+The module-level variables (`squads`, `initiatives`, `people`, `initiativeDates`, `workProfiles`, `tribeLeadership`, `squadOrder`) are the only source of truth. When a modal saves, it must update these globals directly before calling `scheduleSave()`. Never update only the DOM or a local copy — the global state must always reflect reality before a save is triggered.
+
+### 8. Deploy checklist
+Before every `git push`:
+1. Run `npm test`
+2. Verify the app works locally
+3. Confirm no test data exists outside test files
+4. Check no `scheduleSave()` calls exist in init code
+5. `git add . && git commit -m "type: description" && git push`
+
+### 9. Never use Object.assign() to merge state
+`applyState()` must always do full replacement of the global state, never `Object.assign()` or shallow merge. Merging defaults with DB data causes deleted items to resurrect and user changes to be contaminated with default values. Always clear existing keys first, then assign DB data. Never merge on top of defaults.
+
+### 10. Guard scheduleSave() with an _initialized flag
+`scheduleSave()` must check `_initialized === true` before doing anything. Set `_initialized = true` only after the API data has been fully loaded and applied. This prevents any stray event handler or `beforeunload` from writing default state to the database during boot.
+
+### 11. npm test was nuking the production database
+`deleteState()` used to delete both `'state'` AND `'seeded'` keys. Tests ran against the production `DATABASE_URL` (from `.env`). The deploy checklist said to run `npm test` before every push. So every deploy cycle: (1) `npm test` deletes the seeded flag, (2) `git push` triggers Railway deploy, (3) server starts, `seedIfEmpty()` sees no seeded flag, re-seeds with defaults → user data lost. Fix: `deleteState()` now only deletes `'state'`, never `'seeded'`. The test script also sets `NODE_ENV=test`. Always use `TEST_DATABASE_URL` when available to isolate tests from production.

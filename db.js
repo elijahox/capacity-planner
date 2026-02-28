@@ -113,10 +113,12 @@ async function saveData(obj) {
   }
 }
 
-// Used by tests to reset state between runs
-// Also clears the 'seeded' flag so initDB() re-seeds on next test run
+// Used by tests to reset state between runs.
+// NEVER delete the 'seeded' flag — it is permanent and sacred.
+// See Hard Lesson #3 and #11 in CLAUDE.md.
 async function deleteState() {
-  await pool.query(`DELETE FROM store WHERE key IN ('state', 'seeded')`);
+  await pool.query(`DELETE FROM store WHERE key = 'state'`);
+  console.log('⚠️  deleteState() — state cleared, seeded flag preserved');
 }
 
 async function close() {
