@@ -262,3 +262,14 @@ We spent weeks fixing symptoms (race conditions, Object.assign merges, 304 cachi
 3. Form one specific hypothesis
 4. Test it in isolation — one change, one deploy, one verification
 5. Confirm it works through 3 full deploy cycles before declaring victory
+
+### 13. No automated tests without isolated test database
+Test suite removed — was connecting to production DB and corrupting data on every run. `deleteState()` also removed from `db.js`. Do not add tests back until `TEST_DATABASE_URL` is properly isolated and confirmed safe. Manual UI testing is sufficient for now.
+
+### 14. Use "Save as Seed" before major changes
+Before any significant feature work or risky deploy:
+1. Click "Save as Seed" in the app (Overview view)
+2. `git add seed.js`
+3. `git commit -m "chore: checkpoint seed data"`
+4. `git push`
+This ensures the recovery baseline is always your latest stable data, not stale defaults. Export Backup (JSON download) provides an additional safety net independent of git.

@@ -18,6 +18,11 @@ function renderOverview() {
     : 'Click to set';
 
   let html = `
+    <div class="overview-actions">
+      <button class="btn btn-secondary btn-sm" onclick="openSeedModal()">💾 Save as Seed</button>
+      <button class="btn btn-secondary btn-sm" onclick="downloadBackup()">⬇ Download Backup</button>
+      <button class="btn btn-secondary btn-sm" onclick="openRestoreModal()">⬆ Restore from Backup</button>
+    </div>
     <div class="summary-row">
       <div class="summary-card green">
         <div class="summary-label">Total Headcount</div>
@@ -122,4 +127,174 @@ function saveFY27HC(input) {
   fy27PlannedHeadcount = isNaN(val) ? null : val;
   scheduleSave();
   renderContent();
+}
+
+// ================================================================
+// SAVE AS SEED
+// ================================================================
+
+function openSeedModal() {
+  openModal(`
+    <div class="modal-header">
+      <div class="modal-title">Save as Seed</div>
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p style="margin-bottom:12px">This will update the seed data to match your current live data. If the database is ever wiped, it will restore to this point.</p>
+      <p style="margin-bottom:12px;color:var(--text-muted);font-size:12px">This requires a git commit and push to take effect permanently.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="confirmSaveAsSeed()">Save as Seed</button>
+    </div>
+  `);
+}
+
+async function confirmSaveAsSeed() {
+  const pw = getPassword();
+  if (!pw) { alert('Not authenticated'); return; }
+  try {
+    const res = await fetch('/api/seed', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: pw }),
+    });
+    const json = await res.json();
+    if (json.ok) {
+      closeModal();
+      openModal(`
+        <div class="modal-header">
+          <div class="modal-title">Seed Updated</div>
+          <button class="modal-close" onclick="closeModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="alert alert-green" style="margin-bottom:0">
+            <div class="alert-icon">✅</div>
+            <div>Seed updated successfully. Commit and push to make it permanent.</div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-primary" onclick="closeModal()">OK</button>
+        </div>
+      `);
+    } else {
+      alert('Failed to save seed: ' + (json.error || 'Unknown error'));
+    }
+  } catch (e) {
+    alert('Network error saving seed: ' + e.message);
+  }
+}
+
+// ================================================================
+// EXPORT BACKUP
+// ================================================================
+
+function downloadBackup() {
+  const state = collectState();
+  const json = JSON.stringify(state, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const date = new Date().toISOString().slice(0, 10);
+  a.href = url;
+  a.download = 'capacity-planner-backup-' + date + '.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ================================================================
+// IMPORT / RESTORE BACKUP
+// ================================================================
+
+function openRestoreModal() {
+  openModal(`
+    <div class="modal-header">
+      <div class="modal-title">Restore from Backup</div>
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p style="margin-bottom:12px">Select a backup JSON file to restore. This will <strong>overwrite all current data</strong>.</p>
+      <input type="file" id="restore-file-input" accept=".json" style="margin-bottom:12px"
+        onchange="previewRestoreFile()">
+      <div id="restore-preview" style="display:none;margin-top:12px">
+        <div class="alert alert-amber" style="margin-bottom:0">
+          <div class="alert-icon">⚠️</div>
+          <div id="restore-preview-text"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-danger" id="restore-confirm-btn" onclick="confirmRestore()" disabled>Overwrite &amp; Restore</button>
+    </div>
+  `);
+}
+
+let _restoreData = null;
+
+function previewRestoreFile() {
+  const input = document.getElementById('restore-file-input');
+  const preview = document.getElementById('restore-preview');
+  const previewText = document.getElementById('restore-preview-text');
+  const btn = document.getElementById('restore-confirm-btn');
+  _restoreData = null;
+
+  if (!input.files.length) {
+    preview.style.display = 'none';
+    btn.disabled = true;
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data.squads || !data.people || !data.initiatives) {
+        previewText.textContent = 'Invalid backup file — missing required fields (squads, people, initiatives).';
+        preview.style.display = 'block';
+        btn.disabled = true;
+        return;
+      }
+      _restoreData = data;
+      previewText.innerHTML =
+        '<strong>Ready to restore:</strong> ' +
+        data.squads.length + ' squads, ' +
+        data.people.length + ' people, ' +
+        data.initiatives.length + ' initiatives. ' +
+        'This will replace all current data.';
+      preview.style.display = 'block';
+      btn.disabled = false;
+    } catch (err) {
+      previewText.textContent = 'Could not parse file — is it valid JSON?';
+      preview.style.display = 'block';
+      btn.disabled = true;
+    }
+  };
+  reader.readAsText(input.files[0]);
+}
+
+async function confirmRestore() {
+  if (!_restoreData) return;
+  const pw = getPassword();
+  if (!pw) { alert('Not authenticated'); return; }
+  try {
+    const res = await fetch('/api/data', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: pw, data: _restoreData }),
+    });
+    const json = await res.json();
+    if (json.ok) {
+      _restoreData = null;
+      closeModal();
+      // Reload the app to pick up restored data
+      location.reload();
+    } else {
+      alert('Restore failed: ' + (json.error || 'Unknown error'));
+    }
+  } catch (e) {
+    alert('Network error during restore: ' + e.message);
+  }
 }
