@@ -10,7 +10,7 @@
 ## Data Model
 - All state lives in a single object:
   `{ squads, initiatives, people, initiativeDates, workProfiles }`
-- Saved as one JSON blob in SQLite under key `'state'`
+- Saved as one JSON blob in PostgreSQL under key `'state'`
 - Never split this into multiple DB tables without a migration plan
 
 ## Rendering Pattern
@@ -53,7 +53,6 @@
 - Never encode tooltip HTML in data attributes — too fragile with quotes and special characters
 
 ## Testing
-- Tests live in `tests/api.test.js`
-- Run with: `npm test`
-- Tests use a separate `test.db` — never touches production data
-- Always run tests before pushing
+- No automated test suite — permanently removed (was corrupting production database)
+- Manual UI testing only until a properly isolated test database is set up
+- See CLAUDE.md Hard Lesson #13 for full context

@@ -93,11 +93,11 @@ squad creation, and rename operations.
 is in-flight. `beforeunload` handler fires `navigator.sendBeacon` for emergency
 saves when closing the tab with pending changes.
 
-## 2026-02-28: Test cleanup and seed merge
-Tests now call `deleteState()` in both `before()` and `after()` hooks so test data
-never persists in the database after a test run. `seedIfEmpty()` merges any surviving
-user data (initiativeDates, workProfiles, tribeLeadership, squadOrder) before
-seeding defaults, protecting customisations across re-seeds.
+## 2026-02-28: Test cleanup and seed merge (superseded)
+Test suite has been permanently removed — see "Save as Seed" decision below.
+`seedIfEmpty()` merges any surviving user data (initiativeDates, workProfiles,
+tribeLeadership, squadOrder) before seeding defaults, protecting customisations
+across re-seeds.
 
 ## 2026-02-28: Initialization guard and full state replacement
 `applyState()` now clears all existing keys before merging DB data for object-type
