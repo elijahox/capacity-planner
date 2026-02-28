@@ -48,7 +48,7 @@ function renderSquads() {
         <div style="font-family:'Inter',sans-serif;font-size:22px;font-weight:700;display:flex;align-items:center;gap:10px">
           <div style="width:12px;height:12px;border-radius:50%;background:${tribe.color}"></div>${sq.name}
         </div>
-        <div style="font-size:12px;color:var(--text-muted);margin-top:3px;display:flex;align-items:center;gap:4px">${tribe.name} Tribe · ${hc.toFixed(1)}p actual · ${committed.toFixed(1)}p committed ${ragPill(rag, total)} · ${sqPeople.filter(p=>p.type!=='perm').length} contractors · ⚙ <span${disc.engineering === 0 ? ' style="color:var(--red)"' : ''}>${disc.engineering.toFixed(1)}p</span> eng  🧪 <span${disc.qe === 0 ? ' style="color:var(--red)"' : ''}>${disc.qe.toFixed(1)}p</span> QE</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:3px;display:flex;align-items:center;gap:4px">${tribe.name} Tribe · ${hc.toFixed(1)}p actual · ${committed.toFixed(1)}p committed ${ragPill(rag, total)} · ${sqPeople.filter(p=>p.type!=='perm').length} contractors · 💻 <span${disc.engineering === 0 ? ' style="color:var(--red)"' : ''}>${disc.engineering.toFixed(1)}p</span> dev  🔍 <span${disc.qe === 0 ? ' style="color:var(--red)"' : ''}>${disc.qe.toFixed(1)}p</span> QE</div>
       </div>
       <button class="btn btn-primary btn-sm" onclick="openAddPersonModal('${sq.id}')">+ Add Person</button>
     </div>

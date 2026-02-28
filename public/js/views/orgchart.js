@@ -122,7 +122,7 @@ function renderOrgTribeGroup(tribe) {
                   display:flex;align-items:center;justify-content:space-between;gap:12px">
         <span style="font-family:'Inter',sans-serif;font-weight:700;font-size:14px;letter-spacing:-0.3px">${tribe.name}</span>
         <div style="display:flex;align-items:center;gap:10px">
-          <span style="font-size:11px;font-family:'JetBrains Mono',monospace;opacity:0.75">${tribeSquads.length} squads · ${tribeHC}p · ⚙ ${tribeDisc.engineering.toFixed(1)}p  🧪 <span${tribeDisc.qe === 0 ? ' style="color:#fca5a5"' : ''}>${tribeDisc.qe.toFixed(1)}p</span></span>
+          <span style="font-size:11px;font-family:'JetBrains Mono',monospace;opacity:0.75">${tribeSquads.length} squads · ${tribeHC}p · 💻 ${tribeDisc.engineering.toFixed(1)}p dev  🔍 <span${tribeDisc.qe === 0 ? ' style="color:#fca5a5"' : ''}>${tribeDisc.qe.toFixed(1)}p</span> QE</span>
           <span id="new-squad-${tribe.id}">
             <button onclick="orgChartNewSquad('${tribe.id}')"
                     style="background:none;border:1px solid rgba(255,255,255,0.4);color:#fff;
@@ -315,7 +315,7 @@ function renderOrgSquadCol(sq, tribe, minW) {
         <div style="font-size:12px;color:var(--text-muted);line-height:1.3;margin-top:2px">
           <div style="display:flex;justify-content:space-between;align-items:center">${hc.toFixed(1)}p actual ${ragPill(rag, util)}</div>
           <div>${committed.toFixed(1)}p committed</div>
-          <div style="font-size:11px;margin-top:1px">⚙ <span${disc.engineering === 0 ? ' style="color:var(--red)"' : ''}>${disc.engineering.toFixed(1)}p</span> eng  🧪 <span${disc.qe === 0 ? ' style="color:var(--red)"' : ''}>${disc.qe.toFixed(1)}p</span> QE</div>
+          <div style="font-size:11px;margin-top:1px">💻 <span${disc.engineering === 0 ? ' style="color:var(--red)"' : ''}>${disc.engineering.toFixed(1)}p</span> dev  🔍 <span${disc.qe === 0 ? ' style="color:var(--red)"' : ''}>${disc.qe.toFixed(1)}p</span> QE</div>
         </div>
       </div>
 
