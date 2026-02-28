@@ -294,6 +294,14 @@ function renderOrgSquadCol(sq, tribe, minW) {
                            font-size:12px;padding:0 2px;line-height:1;flex-shrink:0;opacity:0;
                            transition:opacity 0.1s"
                     title="Rename squad">✏</button>
+            <button class="squad-delete-btn"
+                    onclick="orgChartDeleteSquad('${sq.id}',event)"
+                    style="background:none;border:none;cursor:pointer;color:var(--text-dim);
+                           font-size:11px;padding:0 2px;line-height:1;flex-shrink:0;opacity:0;
+                           transition:opacity 0.1s,color 0.15s"
+                    onmouseenter="this.style.color='var(--red)'"
+                    onmouseleave="this.style.color='var(--text-dim)'"
+                    title="Delete squad">🗑</button>
           </div>
           <span class="badge badge-grey">${hc}p</span>
           <span class="badge ${utilClass(util)}">${util}%</span>
@@ -492,6 +500,94 @@ function orgChartConfirmNewSquad(tribeId) {
   const name = input.value.trim();
   if (!name) { alert('Squad name is required'); return; }
   squads.push({ id: 'sq_' + Date.now(), tribe: tribeId, name, size: 0 });
+  scheduleSave();
+  orgChartRerender();
+  renderSidebar();
+}
+
+// ── Delete squad ────────────────────────────────────────────────
+function orgChartDeleteSquad(squadId, event) {
+  event.stopPropagation();
+  const sq = squads.find(s => s.id === squadId);
+  if (!sq) return;
+
+  // Check if squad has people (primary or secondary)
+  const hasPeople = people.some(p =>
+    (p.squad === squadId || p.secondarySquad === squadId) && p.status === 'active'
+  );
+  if (hasPeople) {
+    // Show inline error on squad header — block deletion
+    const headerEl = document.getElementById('squad-name-' + squadId);
+    if (headerEl) {
+      const parent = headerEl.closest('.orgchart-squad-col');
+      let errEl = parent ? parent.querySelector('.squad-delete-error') : null;
+      if (!errEl && parent) {
+        errEl = document.createElement('div');
+        errEl.className = 'squad-delete-error';
+        errEl.style.cssText = 'color:var(--red);font-size:11px;padding:4px 12px 0;font-family:"Inter",sans-serif';
+        errEl.textContent = 'Move all people out of this squad before deleting';
+        const headerDiv = parent.querySelector('div[style*="border-bottom"]');
+        if (headerDiv) headerDiv.appendChild(errEl);
+      }
+      // Auto-dismiss after 4 seconds
+      setTimeout(() => { if (errEl) errEl.remove(); }, 4000);
+    }
+    return;
+  }
+
+  // Check if squad has initiative allocations
+  const hasAllocations = initiatives.some(init =>
+    (init.allocations && init.allocations[squadId]) ||
+    (init.estimatedCapacity && init.estimatedCapacity[squadId])
+  );
+
+  let modalBody;
+  if (hasAllocations) {
+    modalBody = `
+      <h3 style="margin:0 0 12px">Delete ${sq.name}?</h3>
+      <p style="color:var(--text-muted);margin:0 0 16px;font-size:13px">
+        <strong style="color:var(--amber)">Warning:</strong> This squad has active initiative allocations
+        that will be removed. This cannot be undone.
+      </p>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+        <button class="btn" onclick="orgChartConfirmDeleteSquad('${squadId}')"
+                style="background:var(--red);color:#fff;border-color:var(--red)">Delete Squad</button>
+      </div>`;
+  } else {
+    modalBody = `
+      <h3 style="margin:0 0 12px">Delete ${sq.name}?</h3>
+      <p style="color:var(--text-muted);margin:0 0 16px;font-size:13px">
+        This cannot be undone.
+      </p>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+        <button class="btn" onclick="orgChartConfirmDeleteSquad('${squadId}')"
+                style="background:var(--red);color:#fff;border-color:var(--red)">Delete Squad</button>
+      </div>`;
+  }
+  openModal(modalBody);
+}
+
+function orgChartConfirmDeleteSquad(squadId) {
+  closeModal();
+
+  // Remove squad from squads array
+  const idx = squads.findIndex(s => s.id === squadId);
+  if (idx !== -1) squads.splice(idx, 1);
+
+  // Remove squad from all initiative allocations and estimatedCapacity
+  for (const init of initiatives) {
+    if (init.allocations) delete init.allocations[squadId];
+    if (init.estimatedCapacity) delete init.estimatedCapacity[squadId];
+  }
+
+  // Remove from squadOrder
+  delete squadOrder[squadId];
+
+  // Remove from tribeLeadership if any slot references a person in this squad
+  // (leadership slots hold personIds, not squadIds — no action needed here)
+
   scheduleSave();
   orgChartRerender();
   renderSidebar();
