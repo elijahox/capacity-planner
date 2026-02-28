@@ -77,9 +77,9 @@ function getSquadRAG(squadId) {
 function ragPill(rag, pct) {
   const colors = { green: 'var(--green)', amber: 'var(--amber)', red: 'var(--red)' };
   const col = colors[rag] || colors.green;
-  return `<span style="display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:600;
-    padding:1px 6px;border-radius:9px;background:color-mix(in srgb, ${col} 15%, transparent);color:${col};
-    white-space:nowrap;line-height:1.2" title="${rag.toUpperCase()}"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${col}"></span>${Math.round(pct)}%</span>`;
+  return `<span style="display:inline-flex;align-items:center;gap:4px;font-size:14px;font-weight:700;
+    padding:2px 8px;border-radius:10px;background:color-mix(in srgb, ${col} 15%, transparent);color:${col};
+    white-space:nowrap;line-height:1.2" title="${rag.toUpperCase()}"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${col}"></span>${Math.round(pct)}%</span>`;
 }
 
 // Simple RAG dot (no percentage) for compact use

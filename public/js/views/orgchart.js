@@ -306,11 +306,11 @@ function renderOrgSquadCol(sq, tribe, minW) {
                   onmouseleave="this.style.color='var(--text-dim)'"
                   title="Delete squad">🗑</button>
         </div>
-        <div style="font-size:12px;color:var(--text-muted);line-height:1.2;margin-top:2px;display:flex;align-items:center;gap:6px">
-          <span>${hc}p actual</span>
-          <span>${committed.toFixed(1)}p committed</span>
-          ${ragPill(rag, util)}
+        <div style="font-size:12px;color:var(--text-muted);line-height:1.3;margin-top:2px">
+          <div>${hc}p actual</div>
+          <div>${committed.toFixed(1)}p committed</div>
         </div>
+        <div style="margin-top:2px">${ragPill(rag, util)}</div>
       </div>
 
       <!-- Person cards (drop zone) -->
