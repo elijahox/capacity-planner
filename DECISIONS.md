@@ -116,6 +116,9 @@ Merged Pipeline and Initiatives views into a single Portfolio view. Tier-grouped
 ## 2026-02-28: Added Capacity Forecast view
 Added Capacity Forecast view showing quarterly delivery headcount (Dev + QE only) per squad with stacked bars for committed vs pipeline demand. Reads from estimatedRoles on initiatives, with fallback to legacy allocations for transition. Australian FY quarters. Drill-down modal shows initiative breakdown per cell.
 
+## 2026-02-28: Assignment fields on estimatedRoles
+Expanded estimatedRoles with assignment fields: `allocation` (%), `inBudget` (bool), `personId` (links to people array), `homeSquad` (org chart squad when different from working squad). Supports both anonymous business case estimates and named actual assignments.
+
 ## 2026-02-28: Funding type on estimatedRoles
 Added `type` field to estimatedRoles entries — `'perm'` (OPEX) or `'contractor'` (CAPEX). Indicates the funding type from the business case. Defaults to `'contractor'` for existing data via defensive migration in `applyState`. Future: cross-reference OPEX estimates against actual permanent headcount availability.
 

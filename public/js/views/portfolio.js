@@ -187,50 +187,71 @@ function renderPortfolioExpanded(init) {
       <table style="width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed">
         <colgroup>
           <col style="width:auto">
-          <col style="width:150px">
-          <col style="width:76px">
+          <col style="width:160px">
+          <col style="width:140px">
+          <col style="width:68px">
+          <col style="width:66px">
+          <col style="width:82px">
           <col style="width:90px">
-          <col style="width:100px">
           <col style="width:150px">
-          <col style="width:36px">
+          <col style="width:46px">
+          <col style="width:30px">
         </colgroup>
         <thead>
           <tr style="border-bottom:1px solid var(--border)">
             <th style="text-align:left;padding:6px 8px;font-weight:600;font-size:11px;color:var(--text-muted)">Role</th>
+            <th style="text-align:left;padding:6px 8px;font-weight:600;font-size:11px;color:var(--text-muted)">Person</th>
             <th style="text-align:left;padding:6px 8px;font-weight:600;font-size:11px;color:var(--text-muted)">Type</th>
+            <th style="text-align:left;padding:6px 8px;font-weight:600;font-size:11px;color:var(--text-muted)">Alloc</th>
             <th style="text-align:left;padding:6px 8px;font-weight:600;font-size:11px;color:var(--text-muted)">Days</th>
             <th style="text-align:left;padding:6px 8px;font-weight:600;font-size:11px;color:var(--text-muted)">Day Rate</th>
             <th style="text-align:left;padding:6px 8px;font-weight:600;font-size:11px;color:var(--text-muted)">Budget</th>
             <th style="text-align:left;padding:6px 8px;font-weight:600;font-size:11px;color:var(--text-muted)">Squad</th>
+            <th style="text-align:center;padding:6px 4px;font-weight:600;font-size:11px;color:var(--text-muted)">In&nbsp;$</th>
             <th></th>
           </tr>
         </thead>
         <tbody>
-          ${roles.length === 0 ? `<tr><td colspan="7" style="padding:12px 8px;text-align:center;color:var(--text-dim);font-size:12px">No role estimates yet</td></tr>` : ''}
-          ${roles.map((r, idx) => `<tr style="border-bottom:1px solid var(--border)">
+          ${roles.length === 0 ? `<tr><td colspan="10" style="padding:12px 8px;text-align:center;color:var(--text-dim);font-size:12px">No role estimates yet</td></tr>` : ''}
+          ${roles.map((r, idx) => {
+            const personObj = r.personId ? people.find(p => p.id === r.personId) : null;
+            const homeSquadLabel = (function() {
+              if (!r.homeSquad || r.homeSquad === r.squad) return '';
+              const hs = squads.find(s => s.id === r.homeSquad);
+              return hs ? `<div style="font-size:10px;color:var(--text-muted);margin-top:2px">(from ${hs.name})</div>` : '';
+            })();
+            return `<tr style="border-bottom:1px solid var(--border)">
             <td style="padding:4px 8px"><input type="text" value="${(r.role || '').replace(/"/g, '&quot;')}" placeholder="e.g. Senior Developer" style="width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:4px;padding:4px 6px;font-size:13px;background:var(--bg);color:var(--text)" onchange="updatePortfolioRole('${init.id}',${idx},'role',this.value)"></td>
+            <td style="padding:4px 8px"><select style="width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:4px;padding:4px 6px;font-size:13px;background:var(--bg);color:var(--text)" onchange="assignPortfolioPerson('${init.id}',${idx},this.value)">
+              <option value="">— Unassigned —</option>
+              ${people.filter(p => p.status === 'active' && !p.isVacant).sort((a,b) => a.name.localeCompare(b.name)).map(p => `<option value="${p.id}"${r.personId === p.id ? ' selected' : ''}>${p.name}</option>`).join('')}
+            </select></td>
             <td style="padding:4px 8px"><select style="width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:4px;padding:4px 6px;font-size:13px;background:var(--bg);color:var(--text)" onchange="updatePortfolioRole('${init.id}',${idx},'type',this.value)">
               <option value="contractor"${(r.type || 'contractor') === 'contractor' ? ' selected' : ''}>Contractor (CAPEX)</option>
               <option value="perm"${r.type === 'perm' ? ' selected' : ''}>Permanent (OPEX)</option>
             </select></td>
+            <td style="padding:4px 8px"><input type="number" value="${r.allocation != null ? r.allocation : 100}" min="0" max="100" placeholder="%" style="width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:4px;padding:4px 6px;font-size:13px;text-align:right;font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--text)" onchange="updatePortfolioRole('${init.id}',${idx},'allocation',+this.value||0)"></td>
             <td style="padding:4px 8px"><input type="number" value="${r.days || ''}" min="0" style="width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:4px;padding:4px 6px;font-size:13px;text-align:right;font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--text)" onchange="updatePortfolioRole('${init.id}',${idx},'days',+this.value||0)"></td>
             <td style="padding:4px 8px"><input type="number" value="${r.dayRate || ''}" min="0" style="width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:4px;padding:4px 6px;font-size:13px;text-align:right;font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--text)" onchange="updatePortfolioRole('${init.id}',${idx},'dayRate',+this.value||0)"></td>
             <td style="padding:4px 8px"><input type="number" value="${r.budget || ''}" min="0" style="width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:4px;padding:4px 6px;font-size:13px;text-align:right;font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--text)" onchange="updatePortfolioRole('${init.id}',${idx},'budget',+this.value||0)"></td>
             <td style="padding:4px 8px"><select style="width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:4px;padding:4px 6px;font-size:13px;background:var(--bg);color:var(--text)" onchange="updatePortfolioRole('${init.id}',${idx},'squad',this.value)">
               <option value="">— None —</option>
               ${squadOpts.replace(`value="${r.squad}"`, `value="${r.squad}" selected`)}
-            </select></td>
-            <td style="padding:4px 4px;text-align:center"><button style="background:none;border:none;cursor:pointer;color:var(--text-dim);font-size:16px;padding:2px 6px" title="Remove" onclick="removePortfolioRole('${init.id}',${idx})">&#x2715;</button></td>
-          </tr>`).join('')}
+            </select>${homeSquadLabel}</td>
+            <td style="padding:4px 4px;text-align:center"><input type="checkbox" ${r.inBudget !== false ? 'checked' : ''} title="In budget" onchange="updatePortfolioRole('${init.id}',${idx},'inBudget',this.checked)" style="cursor:pointer"></td>
+            <td style="padding:4px 4px;text-align:center"><button style="background:none;border:none;cursor:pointer;color:var(--text-dim);font-size:16px;padding:2px 4px" title="Remove" onclick="removePortfolioRole('${init.id}',${idx})">&#x2715;</button></td>
+          </tr>`}).join('')}
         </tbody>
         ${roles.length > 0 ? `<tfoot>
           <tr style="border-top:2px solid var(--border);font-weight:600;font-size:12px">
             <td style="padding:6px 8px">Total</td>
             <td style="padding:6px 8px"></td>
+            <td style="padding:6px 8px"></td>
+            <td style="padding:6px 8px"></td>
             <td style="padding:6px 8px;font-family:'JetBrains Mono',monospace">${roles.reduce((a, r) => a + (r.days || 0), 0)}</td>
             <td style="padding:6px 8px"></td>
             <td style="padding:6px 8px;font-family:'JetBrains Mono',monospace">${portfolioFmtBudget(roles.reduce((a, r) => a + (r.budget || 0), 0))}</td>
-            <td colspan="2"></td>
+            <td colspan="3"></td>
           </tr>
         </tfoot>` : ''}
       </table>
@@ -252,10 +273,35 @@ function addPortfolioRole(initId) {
     days: 0,
     dayRate: 0,
     budget: 0,
-    squad: ''
+    squad: '',
+    allocation: 100,
+    inBudget: true,
+    personId: null,
+    homeSquad: null,
   });
   _portfolioExpanded[initId] = true;
   scheduleSave();
+  renderContent();
+}
+
+function assignPortfolioPerson(initId, idx, personId) {
+  const init = initiatives.find(i => i.id === initId);
+  if (!init || !init.estimatedRoles || !init.estimatedRoles[idx]) return;
+  const role = init.estimatedRoles[idx];
+  role.personId = personId || null;
+  if (personId) {
+    const person = people.find(p => p.id === personId);
+    if (person) {
+      // Auto-populate role if empty
+      if (!role.role) role.role = person.role || '';
+      // Set homeSquad to person's primary squad
+      role.homeSquad = person.squad || null;
+    }
+  } else {
+    role.homeSquad = null;
+  }
+  scheduleSave();
+  _portfolioFilterActive = true;
   renderContent();
 }
 
