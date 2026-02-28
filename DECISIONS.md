@@ -105,3 +105,9 @@ state (initiativeDates, workProfiles, tribeLeadership, squadOrder) — prevents 
 default keys from persisting. An `_initialized` flag blocks `scheduleSave()` and
 `beforeunload` from firing before API data has loaded, preventing defaults from
 overwriting real data in the database.
+
+## 2026-02-28: Save as Seed, Export/Import, test removal
+Added "Save as Seed" (`POST /api/seed`) to checkpoint live DB state into `seed.js` from
+the app UI. Added JSON export/import for manual backups. Removed test suite and
+`deleteState()` entirely — tests were connecting to production DB and corrupting data.
+Recovery strategy is now: Railway auto-backups + Save as Seed + JSON export.

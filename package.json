@@ -4,8 +4,7 @@
   "description": "C&S Ecomm Experience — Capacity Planner",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "test": "NODE_ENV=test node --test tests/api.test.js"
+    "start": "node server.js"
   },
   "dependencies": {
     "dotenv": "^17.3.1",
