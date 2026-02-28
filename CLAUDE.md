@@ -31,6 +31,7 @@ capacity-planner/
 │           ├── portfolio.js    # Portfolio: initiative lifecycle, role estimates, status transitions
 │           ├── roadmap.js     # Initiative timeline
 │           ├── demand.js      # Work profiles + canvas chart
+│           ├── forecast.js   # Quarterly capacity forecast — Dev+QE stacked bars per squad
 │           └── financials.js  # Cost tracking
 ```
 
@@ -45,6 +46,7 @@ capacity-planner/
 - **Portfolio** — initiative lifecycle management, role estimates, status transitions (submitted → approved → in_delivery → complete)
 - **Roadmap** — initiative timeline
 - **Demand** — work profiles + peak collision analysis
+- **Forecast** — quarterly Dev+QE capacity per squad, stacked bars (committed/pipeline/available), drill-down modal
 - **Financials** — cost tracking
 
 ## API Routes
