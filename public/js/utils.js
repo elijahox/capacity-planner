@@ -234,6 +234,48 @@ function getTotalDailySpend() {
     .reduce((a, p) => a + p.dayRate, 0);
 }
 
+// Person-level assignment derived from squad-level initiative allocations.
+// Split-squad members get weighted (0.5) share from each squad.
+function getPersonAssignments(personId) {
+  const p = people.find(x => x.id === personId);
+  if (!p || p.isVacant) return { total: 0, assignments: [] };
+  const assignments = [];
+  let total = 0;
+  const isShared = !!p.secondarySquad;
+  const weight = isShared ? 0.5 : 1;
+  if (p.squad) {
+    initiatives.forEach(init => {
+      const pct = (init.allocations || {})[p.squad];
+      if (pct > 0) {
+        const personPct = pct * weight;
+        total += personPct;
+        assignments.push({ name: init.name, pct: personPct });
+      }
+    });
+  }
+  if (p.secondarySquad) {
+    initiatives.forEach(init => {
+      const pct = (init.allocations || {})[p.secondarySquad];
+      if (pct > 0) {
+        const personPct = pct * 0.5;
+        total += personPct;
+        assignments.push({ name: init.name, pct: personPct });
+      }
+    });
+  }
+  return { total: Math.round(total), assignments };
+}
+
+// Squad-level Dev+QE capacity vs initiative assignments.
+function getSquadAvailableCapacity(squadId) {
+  const disc = getSquadDisciplineCounts(squadId);
+  const devQe = disc.engineering + disc.qe;
+  const { total: allocPct } = getSquadAllocation(squadId);
+  const assigned = (allocPct / 100) * devQe;
+  const available = devQe - assigned;
+  return { devQe, assigned, available, pct: allocPct };
+}
+
 // ================================================================
 // CSV IMPORT HELPERS
 // ================================================================
