@@ -133,3 +133,6 @@ Initiative assignments now reduce home squad capacity. When a person (Dev/QE) is
 
 ## 2026-03-01: Split estimatedRoles into estimates and assignments
 Split `estimatedRoles` on initiatives into `estimates` (business case line items: role, days, dayRate, budget, squad, type) and `assignments` (delivery reality: personId, allocation, homeSquad, inBudget, estimateId linking back to an estimate). Migration in applyState() handles old data transparently. Estimates are read-only when initiative is approved/in_delivery (with temporary unlock). Forecast reads assignments for assigned demand and unlinked estimates for unassigned demand. Supports budget variance and recovery rate analysis (estimated cost vs actual cost including OPEX investment).
+
+## 2026-03-01: Forecast Pending/Delivery modes with tier-coloured bars
+Forecast view now has two modes: Pending (reads from estimates on submitted/approved initiatives) and Delivery (reads from assignments on approved/in_delivery initiatives). Bar segments are colour-coded by initiative tier (T1 dark, T2 medium, T3 light) so you can see what type of work is consuming capacity. Drill-down modal groups initiatives by tier.
