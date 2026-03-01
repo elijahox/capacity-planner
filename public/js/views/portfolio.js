@@ -131,10 +131,40 @@ function renderPortfolioCard(init) {
           ${estimates.length > 0 ? `<span>${estimates.length} estimate${estimates.length !== 1 ? 's' : ''}</span>` : ''}
           ${assignments.length > 0 ? `<span>${assignments.length} assignment${assignments.length !== 1 ? 's' : ''}</span>` : ''}
         </div>
-        ${allocs.length > 0 ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px">
-          ${allocs.slice(0, 5).map(([sqId, pct]) => { const sq = squads.find(s => s.id === sqId); return sq ? `<span class="tag">${sq.name} ${pct}%</span>` : ''; }).join('')}
-          ${allocs.length > 5 ? `<span class="tag">+${allocs.length - 5}</span>` : ''}
-        </div>` : ''}
+        ${(() => {
+          const useAssignments = (ps === 'in_delivery' || ps === 'approved') && assignments.length > 0;
+          let squadPills = [];
+          if (useAssignments) {
+            const squadAlloc = {};
+            assignments.forEach(asg => {
+              const person = asg.personId ? people.find(p => p.id === asg.personId) : null;
+              const sqId = person ? person.squad : asg.squad;
+              if (!sqId) return;
+              squadAlloc[sqId] = (squadAlloc[sqId] || 0) + (asg.allocation != null ? asg.allocation : 100);
+            });
+            const total = Object.values(squadAlloc).reduce((a, v) => a + v, 0);
+            if (total > 0) {
+              squadPills = Object.entries(squadAlloc)
+                .map(([sqId, val]) => ({ sqId, pct: Math.round(val / total * 100) }))
+                .sort((a, b) => b.pct - a.pct);
+            }
+          } else {
+            const squadDays = {};
+            estimates.forEach(e => {
+              if (!e.squad || !e.days) return;
+              squadDays[e.squad] = (squadDays[e.squad] || 0) + e.days;
+            });
+            const total = Object.values(squadDays).reduce((a, v) => a + v, 0);
+            if (total > 0) {
+              squadPills = Object.entries(squadDays)
+                .map(([sqId, val]) => ({ sqId, pct: Math.round(val / total * 100) }))
+                .sort((a, b) => b.pct - a.pct);
+            }
+          }
+          return squadPills.length > 0 ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px">
+            ${squadPills.map(({ sqId, pct }) => { const sq = squads.find(s => s.id === sqId); return sq ? `<span class="tag">${sq.name} ${pct}%</span>` : ''; }).join('')}
+          </div>` : '';
+        })()}
       </div>
       <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
         ${statusBtn}
@@ -281,14 +311,16 @@ function renderPortfolioExpanded(init) {
     <div style="overflow-x:auto">
       <table style="width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed">
         <colgroup>
-          <col style="width:160px">
+          <col style="width:150px">
           <col style="width:auto">
-          <col style="width:100px">
-          <col style="width:68px">
+          <col style="width:90px">
+          <col style="width:58px">
+          <col style="width:76px">
+          <col style="width:60px">
           <col style="width:82px">
-          <col style="width:150px">
-          <col style="width:150px">
-          <col style="width:46px">
+          <col style="width:120px">
+          <col style="width:130px">
+          <col style="width:42px">
           <col style="width:30px">
         </colgroup>
         <thead>
@@ -298,14 +330,16 @@ function renderPortfolioExpanded(init) {
             <th style="text-align:left;padding:6px 8px;font-weight:600;font-size:11px;color:var(--text-muted)">Type</th>
             <th style="text-align:left;padding:6px 8px;font-weight:600;font-size:11px;color:var(--text-muted)">Alloc</th>
             <th style="text-align:left;padding:6px 8px;font-weight:600;font-size:11px;color:var(--text-muted)">Day Rate</th>
+            <th style="text-align:left;padding:6px 8px;font-weight:600;font-size:11px;color:var(--text-muted)">Days</th>
+            <th style="text-align:left;padding:6px 8px;font-weight:600;font-size:11px;color:var(--text-muted)">Cost</th>
             <th style="text-align:left;padding:6px 8px;font-weight:600;font-size:11px;color:var(--text-muted)">Squad</th>
-            <th style="text-align:left;padding:6px 8px;font-weight:600;font-size:11px;color:var(--text-muted)">Fills&nbsp;Estimate</th>
+            <th style="text-align:left;padding:6px 8px;font-weight:600;font-size:11px;color:var(--text-muted)">Fills&nbsp;Est.</th>
             <th style="text-align:center;padding:6px 4px;font-weight:600;font-size:11px;color:var(--text-muted)">In&nbsp;$</th>
             <th></th>
           </tr>
         </thead>
         <tbody>
-          ${assignments.length === 0 ? `<tr><td colspan="9" style="padding:12px 8px;text-align:center;color:var(--text-dim);font-size:12px">No assignments yet</td></tr>` : ''}
+          ${assignments.length === 0 ? `<tr><td colspan="11" style="padding:12px 8px;text-align:center;color:var(--text-dim);font-size:12px">No assignments yet</td></tr>` : ''}
           ${assignments.map((asg, idx) => {
             const personObj = asg.personId ? people.find(p => p.id === asg.personId) : null;
             const homeSquadLabel = (() => {
@@ -332,10 +366,9 @@ function renderPortfolioExpanded(init) {
               <td style="padding:4px 8px;font-size:12px;color:var(--text-muted)">${typeLabel}${homeSquadLabel}</td>
               <td style="padding:4px 8px"><input type="number" value="${asg.allocation != null ? asg.allocation : 100}" min="0" max="100" placeholder="%" style="${numStyle}" onchange="updatePortfolioAssignment('${init.id}',${idx},'allocation',+this.value||0)"></td>
               <td style="padding:4px 8px"><input type="number" value="${asg.dayRate || ''}" min="0" style="${numStyle}" onchange="updatePortfolioAssignment('${init.id}',${idx},'dayRate',+this.value||0)"></td>
-              <td style="padding:4px 8px"><select style="${inputStyle}" onchange="updatePortfolioAssignment('${init.id}',${idx},'squad',this.value)">
-                <option value="">— None —</option>
-                ${squadOpts.replace(new RegExp(`value="${asg.squad}"`), `value="${asg.squad}" selected`)}
-              </select></td>
+              <td style="padding:4px 8px"><input type="number" value="${asg.days || ''}" min="0" style="${numStyle}" onchange="updatePortfolioAssignment('${init.id}',${idx},'days',+this.value||0)"></td>
+              <td style="padding:4px 8px;font-family:'JetBrains Mono',monospace;font-size:12px;text-align:right;color:var(--text-muted)">${asg.days && asg.dayRate ? fmtCurrency(asg.days * asg.dayRate) : '—'}</td>
+              <td style="padding:4px 8px;font-size:12px;color:var(--text-muted)">${asg.squad ? (squads.find(s => s.id === asg.squad)?.name || asg.squad) : '—'}</td>
               <td style="padding:4px 8px"><select style="${inputStyle}" onchange="linkAssignmentToEstimate('${init.id}',${idx},this.value)">
                 <option value="">— No linked estimate —</option>
                 ${estimateOpts}
@@ -345,18 +378,29 @@ function renderPortfolioExpanded(init) {
             </tr>`;
           }).join('')}
         </tbody>
-        ${assignments.length > 0 ? `<tfoot>
+        ${assignments.length > 0 ? (() => {
+          const totalAlloc = assignments.reduce((a, asg) => a + (asg.allocation != null ? asg.allocation : 100), 0);
+          const totalDays = assignments.reduce((a, asg) => a + (asg.days || 0), 0);
+          const totalCost = assignments.reduce((a, asg) => a + (asg.days && asg.dayRate ? asg.days * asg.dayRate : 0), 0);
+          return `<tfoot>
           <tr style="border-top:2px solid var(--border);font-weight:600;font-size:12px">
             <td style="padding:6px 8px">Total</td>
             <td style="padding:6px 8px"></td>
             <td style="padding:6px 8px"></td>
-            <td style="padding:6px 8px;font-family:'JetBrains Mono',monospace;text-align:right">${assignments.reduce((a, asg) => a + (asg.allocation != null ? asg.allocation : 100), 0)}%</td>
-            <td colspan="5" style="padding:6px 8px;font-size:11px;color:var(--text-muted)">${assignments.length} assignment${assignments.length !== 1 ? 's' : ''} · ${totalAssignedHC.toFixed(1)} HC equiv</td>
+            <td style="padding:6px 8px;font-family:'JetBrains Mono',monospace;text-align:right">${totalAlloc}%</td>
+            <td style="padding:6px 8px"></td>
+            <td style="padding:6px 8px;font-family:'JetBrains Mono',monospace;text-align:right">${totalDays || ''}</td>
+            <td style="padding:6px 8px;font-family:'JetBrains Mono',monospace;text-align:right">${totalCost > 0 ? fmtCurrency(totalCost) : '—'}</td>
+            <td colspan="4" style="padding:6px 8px;font-size:11px;color:var(--text-muted)">${assignments.length} assignment${assignments.length !== 1 ? 's' : ''} · ${totalAssignedHC.toFixed(1)} HC equiv</td>
           </tr>
-        </tfoot>` : ''}
+        </tfoot>`;
+        })() : ''}
       </table>
     </div>
-    <button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="addPortfolioAssignment('${init.id}')">+ Add Assignment</button>
+    <div style="display:flex;gap:8px;margin-top:8px;align-items:flex-start">
+      <button class="btn btn-secondary btn-sm" onclick="addPortfolioAssignment('${init.id}')">+ Add Assignment</button>
+      <button class="btn btn-secondary btn-sm" onclick="showAddSquadDropdown(event,'${init.id}')">+ Add Squad</button>
+    </div>
   </div>`;
 }
 
@@ -453,10 +497,12 @@ function assignPortfolioAssignmentPerson(initId, idx, personId) {
     if (person) {
       asg.role = person.role || '';
       asg.type = (person.type === 'msp' ? 'contractor' : person.type) || 'contractor';
-      asg.dayRate = person.dayRate || asg.dayRate;
+      asg.dayRate = person.dayRate || (person.type === 'perm' ? 750 : asg.dayRate);
+      asg.squad = person.squad || '';
       asg.homeSquad = person.squad || null;
     }
   } else {
+    asg.squad = '';
     asg.homeSquad = null;
   }
   scheduleSave();
@@ -485,6 +531,93 @@ function removePortfolioAssignment(initId, idx) {
   const init = initiatives.find(i => i.id === initId);
   if (!init || !init.assignments) return;
   init.assignments.splice(idx, 1);
+  scheduleSave();
+  _portfolioFilterActive = true;
+  renderContent();
+}
+
+// ── Bulk add squad to assignments ────────────────────────────────
+
+function showAddSquadDropdown(event, initId) {
+  // Remove any existing dropdown
+  const existing = document.getElementById('add-squad-dropdown');
+  if (existing) existing.remove();
+
+  // Build dropdown HTML
+  const items = TRIBES.map(tribe => {
+    const tribeSquads = squads.filter(s => s.tribe === tribe.id);
+    if (tribeSquads.length === 0) return '';
+    return `<div style="padding:6px 12px;font-size:11px;font-weight:600;color:var(--text-muted);border-bottom:1px solid var(--border);background:var(--bg2)">${tribe.name}</div>` +
+      tribeSquads.map(sq => `<div style="padding:8px 12px;font-size:13px;cursor:pointer;border-bottom:1px solid var(--border)" onmouseenter="this.style.background='var(--bg2)'" onmouseleave="this.style.background=''" onclick="executeAddSquad('${initId}','${sq.id}')">${sq.name}</div>`).join('');
+  }).join('');
+
+  const dd = document.createElement('div');
+  dd.id = 'add-squad-dropdown';
+  dd.style.cssText = 'position:fixed;background:var(--bg);border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);z-index:9999;min-width:200px;max-height:300px;overflow-y:auto';
+  dd.innerHTML = items;
+
+  document.body.appendChild(dd);
+
+  // Position below the button
+  const btnRect = event.currentTarget.getBoundingClientRect();
+  dd.style.left = btnRect.left + 'px';
+  dd.style.top = (btnRect.bottom + 4) + 'px';
+
+  // If dropdown goes off-screen bottom, show above
+  const ddRect = dd.getBoundingClientRect();
+  if (ddRect.bottom > window.innerHeight) {
+    dd.style.top = (btnRect.top - ddRect.height - 4) + 'px';
+  }
+
+  // Close on outside click
+  const close = (e) => {
+    if (!dd.contains(e.target)) {
+      dd.remove();
+      document.removeEventListener('click', close);
+    }
+  };
+  setTimeout(() => document.addEventListener('click', close), 0);
+}
+
+function executeAddSquad(initId, squadId) {
+  const init = initiatives.find(i => i.id === initId);
+  if (!init) return;
+  if (!init.assignments) init.assignments = [];
+
+  const existingPersonIds = new Set(init.assignments.filter(a => a.personId).map(a => a.personId));
+
+  // Get active, non-vacant people in this squad (primary or secondary)
+  const squadPeople = people.filter(p =>
+    p.status === 'active' &&
+    !p.isVacant &&
+    (p.squad === squadId || p.secondarySquad === squadId) &&
+    !existingPersonIds.has(p.id)
+  );
+
+  // Close dropdown
+  const dd = document.getElementById('add-squad-dropdown');
+  if (dd) dd.remove();
+
+  if (squadPeople.length === 0) return;
+
+  squadPeople.forEach(p => {
+    const isSecondary = p.squad !== squadId && p.secondarySquad === squadId;
+    init.assignments.push({
+      id: 'asg-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5),
+      estimateId: null,
+      personId: p.id,
+      role: p.role || '',
+      type: (p.type === 'msp' ? 'contractor' : p.type) || 'contractor',
+      dayRate: p.dayRate || (p.type === 'perm' ? 750 : 0),
+      allocation: isSecondary ? 50 : 100,
+      days: null,
+      squad: p.squad || '',
+      homeSquad: p.squad || null,
+      inBudget: false,
+    });
+  });
+
+  _portfolioExpanded[initId] = true;
   scheduleSave();
   _portfolioFilterActive = true;
   renderContent();
@@ -547,21 +680,6 @@ function _doAdvanceStatus(initId, newStatus) {
 function openPortfolioModal(initId) {
   const init = initId ? initiatives.find(i => i.id === initId) : null;
   const ps = init ? (init.pipelineStatus || 'in_delivery') : 'submitted';
-  const estCap = init ? (init.estimatedCapacity || {}) : {};
-
-  // Build squad capacity rows grouped by tribe
-  const capRows = TRIBES.map(tribe => {
-    const tribeSquads = squads.filter(s => s.tribe === tribe.id);
-    return `<tr style="background:var(--bg2)">
-      <td colspan="2" style="padding:4px 8px;font-size:11px;font-weight:600;color:var(--text-muted);letter-spacing:0.05em">${tribe.name.toUpperCase()}</td>
-    </tr>` + tribeSquads.map(sq => {
-      const pct = estCap[sq.id] || 0;
-      return `<tr>
-        <td style="padding:4px 8px;font-size:13px">${sq.name}</td>
-        <td style="padding:4px 8px"><input class="form-input" type="number" min="0" max="200" style="width:80px;padding:4px 8px" id="pf-ec-${sq.id}" value="${pct || ''}"></td>
-      </tr>`;
-    }).join('');
-  }).join('');
 
   openModal(`
     <div class="modal-header">
@@ -617,6 +735,10 @@ function openPortfolioModal(initId) {
           <input class="form-input" id="pf-start" type="date" value="${init?.expectedStart || ''}">
         </div>
         <div class="form-group">
+          <div class="form-label">Due Date</div>
+          <input class="form-input" id="pf-due" type="date" value="${init?.dueDate || ''}">
+        </div>
+        <div class="form-group">
           <div class="form-label">Duration (weeks)</div>
           <input class="form-input" id="pf-duration" type="number" value="${init?.expectedDuration || ''}" placeholder="e.g. 12">
         </div>
@@ -624,15 +746,36 @@ function openPortfolioModal(initId) {
           <div class="form-label">Est. Headcount</div>
           <input class="form-input" id="pf-hc" type="number" value="${init?.estimatedHeadcount || ''}" placeholder="e.g. 5">
         </div>
-        <div class="form-group" style="grid-column:1/-1">
-          <div class="form-label" style="margin-bottom:8px">Estimated Capacity (% per squad)</div>
-          <div style="max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:8px">
-            <table class="data-table compact" style="margin:0">
-              <thead><tr><th>Squad</th><th>%</th></tr></thead>
-              <tbody>${capRows}</tbody>
-            </table>
-          </div>
-        </div>
+        ${(() => {
+          if (!init) return '';
+          const initEstimates = init.estimates || [];
+          const initAssignments = init.assignments || [];
+          const initPs = init.pipelineStatus || 'in_delivery';
+          const useAsg = (initPs === 'in_delivery' || initPs === 'approved') && initAssignments.length > 0;
+          let splitPills = [];
+          if (useAsg) {
+            const sqAlloc = {};
+            initAssignments.forEach(asg => {
+              const person = asg.personId ? people.find(p => p.id === asg.personId) : null;
+              const sqId = person ? person.squad : asg.squad;
+              if (!sqId) return;
+              sqAlloc[sqId] = (sqAlloc[sqId] || 0) + (asg.allocation != null ? asg.allocation : 100);
+            });
+            const tot = Object.values(sqAlloc).reduce((a, v) => a + v, 0);
+            if (tot > 0) splitPills = Object.entries(sqAlloc).map(([sqId, val]) => ({ sqId, pct: Math.round(val / tot * 100) })).sort((a, b) => b.pct - a.pct);
+          } else {
+            const sqDays = {};
+            initEstimates.forEach(e => { if (!e.squad || !e.days) return; sqDays[e.squad] = (sqDays[e.squad] || 0) + e.days; });
+            const tot = Object.values(sqDays).reduce((a, v) => a + v, 0);
+            if (tot > 0) splitPills = Object.entries(sqDays).map(([sqId, val]) => ({ sqId, pct: Math.round(val / tot * 100) })).sort((a, b) => b.pct - a.pct);
+          }
+          return `<div class="form-group" style="grid-column:1/-1">
+            <div class="form-label" style="margin-bottom:8px">Squad Split${splitPills.length > 0 ? ' (' + (useAsg ? 'from assignments' : 'from estimates') + ')' : ''}</div>
+            ${splitPills.length > 0 ? `<div style="display:flex;flex-wrap:wrap;gap:4px">
+              ${splitPills.map(({ sqId, pct }) => { const sq = squads.find(s => s.id === sqId); return sq ? '<span class="tag">' + sq.name + ' ' + pct + '%</span>' : ''; }).join('')}
+            </div>` : '<div style="font-size:12px;color:var(--text-dim)">No squad allocation data</div>'}
+          </div>`;
+        })()}
       </div>
     </div>
     <div class="modal-footer">
@@ -652,14 +795,9 @@ function savePortfolioModal(initId) {
   const sponsor = document.getElementById('pf-sponsor').value.trim() || null;
   const budget = parseFloat(document.getElementById('pf-budget').value) || null;
   const expectedStart = document.getElementById('pf-start').value || null;
+  const dueDate = document.getElementById('pf-due').value || null;
   const expectedDuration = parseInt(document.getElementById('pf-duration').value) || null;
   const estimatedHeadcount = parseInt(document.getElementById('pf-hc').value) || null;
-
-  const estimatedCapacity = {};
-  squads.forEach(sq => {
-    const val = parseInt(document.getElementById('pf-ec-' + sq.id)?.value) || 0;
-    if (val > 0) estimatedCapacity[sq.id] = val;
-  });
 
   if (initId) {
     const init = initiatives.find(i => i.id === initId);
@@ -672,13 +810,9 @@ function savePortfolioModal(initId) {
       init.sponsor = sponsor;
       init.budget = budget;
       init.expectedStart = expectedStart;
+      init.dueDate = dueDate;
       init.expectedDuration = expectedDuration;
       init.estimatedHeadcount = estimatedHeadcount;
-      init.estimatedCapacity = estimatedCapacity;
-      if (pipelineStatus === 'in_delivery' && Object.keys(estimatedCapacity).length > 0) {
-        if (!init.allocations) init.allocations = {};
-        Object.assign(init.allocations, estimatedCapacity);
-      }
     }
   } else {
     const newInit = {
@@ -687,11 +821,11 @@ function savePortfolioModal(initId) {
       tier,
       status,
       owner,
-      allocations: pipelineStatus === 'in_delivery' ? { ...estimatedCapacity } : {},
+      allocations: {},
       budget,
-      estimatedCapacity,
       estimatedHeadcount,
       expectedStart,
+      dueDate,
       expectedDuration,
       sponsor,
       pipelineStatus,

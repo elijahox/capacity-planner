@@ -75,6 +75,22 @@ function toggleVacantFields(prefix) {
   if (nameInput) nameInput.placeholder = checked ? 'e.g. Senior Engineer — TBH' : (prefix === 'np' ? 'Full name' : '');
 }
 
+function handlePersonTypeChange(prefix, newType) {
+  const rateInput = document.getElementById(prefix + '-rate');
+  if (!rateInput) return;
+  if (newType === 'perm') {
+    // Auto-fill 750 only if empty or zero
+    if (!rateInput.value || parseFloat(rateInput.value) === 0) {
+      rateInput.value = 750;
+    }
+  } else {
+    // Switching away from perm — clear rate for manual entry
+    if (parseFloat(rateInput.value) === 750) {
+      rateInput.value = '';
+    }
+  }
+}
+
 function renderPeople() {
   if (!_peopleFilterActive) _peopleFilter = 'all';
   _peopleFilterActive = false;
@@ -260,7 +276,7 @@ function openPersonModal(id) {
         </div>
         <div class="form-group">
           <div class="form-label">Type</div>
-          <select class="form-select" id="pm-type">
+          <select class="form-select" id="pm-type" onchange="handlePersonTypeChange('pm',this.value)">
             <option value="perm" ${p.type==='perm'?'selected':''}>Permanent</option>
             <option value="contractor" ${p.type==='contractor'?'selected':''}>Contractor</option>
             <option value="msp" ${p.type==='msp'?'selected':''}>Consultant (MSP)</option>
@@ -282,7 +298,7 @@ function openPersonModal(id) {
         </div>
         <div class="form-group">
           <div class="form-label">Day Rate (ex GST)</div>
-          <input class="form-input" id="pm-rate" type="number" value="${p.dayRate||''}" placeholder="e.g. 1200" />
+          <input class="form-input" id="pm-rate" type="number" value="${p.dayRate || (p.type === 'perm' ? 750 : '')}" placeholder="e.g. 1200" />
         </div>
         <div class="form-group">
           <div class="form-label">Agency</div>
@@ -414,7 +430,7 @@ function openAddPersonModal(squadId) {
         </div>
         <div class="form-group">
           <div class="form-label">Type</div>
-          <select class="form-select" id="np-type">
+          <select class="form-select" id="np-type" onchange="handlePersonTypeChange('np',this.value)">
             <option value="perm">Permanent</option>
             <option value="contractor">Contractor</option>
             <option value="msp">Consultant (MSP)</option>
@@ -435,7 +451,7 @@ function openAddPersonModal(squadId) {
         </div>
         <div class="form-group">
           <div class="form-label">Day Rate (ex GST)</div>
-          <input class="form-input" id="np-rate" type="number" placeholder="e.g. 1200" />
+          <input class="form-input" id="np-rate" type="number" value="750" placeholder="e.g. 1200" />
         </div>
         <div class="form-group">
           <div class="form-label">Agency</div>
