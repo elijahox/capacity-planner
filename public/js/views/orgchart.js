@@ -253,6 +253,8 @@ function renderOrgSquadCol(sq, tribe, minW) {
   const committed = getCommittedHeadcount(sq.id);
   const rag = getSquadRAG(sq.id);
   const disc = getSquadDisciplineCounts(sq.id);
+  const cap = getSquadAvailableCapacity(sq.id);
+  const capColor = cap.pct > 90 ? 'var(--red)' : cap.pct > 70 ? 'var(--amber)' : 'var(--green)';
   const c = tribe.color;
 
   // Build exclusion set: anyone in a leadership slot should NOT appear in squad columns
@@ -316,6 +318,7 @@ function renderOrgSquadCol(sq, tribe, minW) {
           <div style="display:flex;justify-content:space-between;align-items:center">${hc.toFixed(1)}p actual ${ragPill(rag, util)}</div>
           <div>${committed.toFixed(1)}p committed</div>
           <div style="font-size:11px;margin-top:1px">💻 <span${disc.engineering === 0 ? ' style="color:var(--red)"' : ''}>${disc.engineering.toFixed(1)}p</span> dev  🔍 <span${disc.qe === 0 ? ' style="color:var(--red)"' : ''}>${disc.qe.toFixed(1)}p</span> QE</div>
+          ${cap.devQe > 0 ? `<div style="font-size:11px;margin-top:2px;color:${capColor};font-weight:600">${cap.assigned.toFixed(1)} / ${cap.devQe.toFixed(1)} Dev+QE assigned · ${cap.available.toFixed(1)} avail</div>` : ''}
           ${(() => { const vac = getSquadVacancies(sq.id); return vac.total > 0 ? `<div style="font-size:10px;color:var(--text-muted);margin-top:2px">${vac.total} vacant (${vac.approved} approved, ${vac.pending} pending)</div>` : ''; })()}
         </div>
       </div>
@@ -390,6 +393,23 @@ function renderOrgPersonCard(p, context) {
     vacancyProject = `<div style="font-size:10px;color:var(--text-dim);margin-top:2px;font-style:italic">for ${p.vacancyProject}</div>`;
   }
 
+  // Assignment utilisation badge
+  const assign = isVacant ? { total: 0, assignments: [] } : getPersonAssignments(p.id);
+  let assignBadge = '';
+  let assignOpacity = '';
+  if (!isVacant && assign.total > 0) {
+    const tipLines = assign.assignments.map(a => `${a.name.replace(/"/g, '&quot;')}: ${a.pct.toFixed(0)}%`).join('&#10;');
+    if (assign.total > 100) {
+      assignBadge = `<span class="badge badge-red" style="font-size:10px;padding:1px 6px" title="${assign.total}% assigned&#10;${tipLines}">${assign.total}% ⚠</span>`;
+    } else if (assign.total === 100) {
+      assignBadge = `<span class="badge badge-grey" style="font-size:10px;padding:1px 6px" title="Fully assigned&#10;${tipLines}">100%</span>`;
+      assignOpacity = 'opacity:0.65;';
+    } else {
+      const avail = 100 - assign.total;
+      assignBadge = `<span class="badge badge-green" style="font-size:10px;padding:1px 6px" title="${assign.total}% assigned&#10;${tipLines}">${avail}% avail</span>`;
+    }
+  }
+
   return `
     <div class="orgchart-person-card${vacantClass}"
          draggable="true"
@@ -400,7 +420,7 @@ function renderOrgPersonCard(p, context) {
          ondragleave="orgChartCardDragLeave(event)"
          ondrop="orgChartCardDrop(event,'${p.id}','${cardSquadId}')"
          onclick="openPersonModal('${p.id}')"${tooltipAttr}
-         style="${isVacant ? '' : `background:${cardBg};border:1px solid var(--border);`}border-radius:7px;padding:9px 11px;user-select:none;position:relative">
+         style="${isVacant ? '' : `background:${cardBg};border:1px solid var(--border);`}${assignOpacity}border-radius:7px;padding:9px 11px;user-select:none;position:relative">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:4px;margin-bottom:1px">
         <div class="${isVacant ? 'org-card-name' : ''}" id="${nameElId}"
              style="font-weight:700;font-size:13px;flex:1">${displayName}</div>
@@ -416,6 +436,7 @@ function renderOrgPersonCard(p, context) {
         <span class="badge ${getTypeClass(p.type)}">${shortType}</span>
         ${vacancyBadge}
         ${sharedBadges}
+        ${assignBadge}
         ${expiryHtml}
       </div>
       ${vacancyProject}

@@ -112,3 +112,6 @@ Added "Save as Seed" (`POST /api/seed`) to checkpoint live DB state into `seed.j
 the app UI. Added JSON export/import for manual backups. Removed test suite and
 `deleteState()` entirely — tests were connecting to production DB and corrupting data.
 Recovery strategy is now: Railway auto-backups + Save as Seed + JSON export.
+
+## 2026-03-01: Org chart assignment utilisation
+Added `getPersonAssignments(personId)` and `getSquadAvailableCapacity(squadId)` to utils.js, deriving person-level assignment percentages from existing squad-level initiative allocations. Squad headers now show Dev+QE assigned vs available (color-coded green/amber/red by utilisation %), and person cards display assignment badges with initiative breakdown tooltips.
