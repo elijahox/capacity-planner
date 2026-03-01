@@ -131,10 +131,40 @@ function renderPortfolioCard(init) {
           ${estimates.length > 0 ? `<span>${estimates.length} estimate${estimates.length !== 1 ? 's' : ''}</span>` : ''}
           ${assignments.length > 0 ? `<span>${assignments.length} assignment${assignments.length !== 1 ? 's' : ''}</span>` : ''}
         </div>
-        ${allocs.length > 0 ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px">
-          ${allocs.slice(0, 5).map(([sqId, pct]) => { const sq = squads.find(s => s.id === sqId); return sq ? `<span class="tag">${sq.name} ${pct}%</span>` : ''; }).join('')}
-          ${allocs.length > 5 ? `<span class="tag">+${allocs.length - 5}</span>` : ''}
-        </div>` : ''}
+        ${(() => {
+          const useAssignments = (ps === 'in_delivery' || ps === 'approved') && assignments.length > 0;
+          let squadPills = [];
+          if (useAssignments) {
+            const squadAlloc = {};
+            assignments.forEach(asg => {
+              const person = asg.personId ? people.find(p => p.id === asg.personId) : null;
+              const sqId = person ? person.squad : asg.squad;
+              if (!sqId) return;
+              squadAlloc[sqId] = (squadAlloc[sqId] || 0) + (asg.allocation != null ? asg.allocation : 100);
+            });
+            const total = Object.values(squadAlloc).reduce((a, v) => a + v, 0);
+            if (total > 0) {
+              squadPills = Object.entries(squadAlloc)
+                .map(([sqId, val]) => ({ sqId, pct: Math.round(val / total * 100) }))
+                .sort((a, b) => b.pct - a.pct);
+            }
+          } else {
+            const squadDays = {};
+            estimates.forEach(e => {
+              if (!e.squad || !e.days) return;
+              squadDays[e.squad] = (squadDays[e.squad] || 0) + e.days;
+            });
+            const total = Object.values(squadDays).reduce((a, v) => a + v, 0);
+            if (total > 0) {
+              squadPills = Object.entries(squadDays)
+                .map(([sqId, val]) => ({ sqId, pct: Math.round(val / total * 100) }))
+                .sort((a, b) => b.pct - a.pct);
+            }
+          }
+          return squadPills.length > 0 ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px">
+            ${squadPills.map(({ sqId, pct }) => { const sq = squads.find(s => s.id === sqId); return sq ? `<span class="tag">${sq.name} ${pct}%</span>` : ''; }).join('')}
+          </div>` : '';
+        })()}
       </div>
       <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
         ${statusBtn}
@@ -546,21 +576,6 @@ function _doAdvanceStatus(initId, newStatus) {
 function openPortfolioModal(initId) {
   const init = initId ? initiatives.find(i => i.id === initId) : null;
   const ps = init ? (init.pipelineStatus || 'in_delivery') : 'submitted';
-  const estCap = init ? (init.estimatedCapacity || {}) : {};
-
-  // Build squad capacity rows grouped by tribe
-  const capRows = TRIBES.map(tribe => {
-    const tribeSquads = squads.filter(s => s.tribe === tribe.id);
-    return `<tr style="background:var(--bg2)">
-      <td colspan="2" style="padding:4px 8px;font-size:11px;font-weight:600;color:var(--text-muted);letter-spacing:0.05em">${tribe.name.toUpperCase()}</td>
-    </tr>` + tribeSquads.map(sq => {
-      const pct = estCap[sq.id] || 0;
-      return `<tr>
-        <td style="padding:4px 8px;font-size:13px">${sq.name}</td>
-        <td style="padding:4px 8px"><input class="form-input" type="number" min="0" max="200" style="width:80px;padding:4px 8px" id="pf-ec-${sq.id}" value="${pct || ''}"></td>
-      </tr>`;
-    }).join('');
-  }).join('');
 
   openModal(`
     <div class="modal-header">
@@ -616,6 +631,10 @@ function openPortfolioModal(initId) {
           <input class="form-input" id="pf-start" type="date" value="${init?.expectedStart || ''}">
         </div>
         <div class="form-group">
+          <div class="form-label">Due Date</div>
+          <input class="form-input" id="pf-due" type="date" value="${init?.dueDate || ''}">
+        </div>
+        <div class="form-group">
           <div class="form-label">Duration (weeks)</div>
           <input class="form-input" id="pf-duration" type="number" value="${init?.expectedDuration || ''}" placeholder="e.g. 12">
         </div>
@@ -623,15 +642,36 @@ function openPortfolioModal(initId) {
           <div class="form-label">Est. Headcount</div>
           <input class="form-input" id="pf-hc" type="number" value="${init?.estimatedHeadcount || ''}" placeholder="e.g. 5">
         </div>
-        <div class="form-group" style="grid-column:1/-1">
-          <div class="form-label" style="margin-bottom:8px">Estimated Capacity (% per squad)</div>
-          <div style="max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:8px">
-            <table class="data-table compact" style="margin:0">
-              <thead><tr><th>Squad</th><th>%</th></tr></thead>
-              <tbody>${capRows}</tbody>
-            </table>
-          </div>
-        </div>
+        ${(() => {
+          if (!init) return '';
+          const initEstimates = init.estimates || [];
+          const initAssignments = init.assignments || [];
+          const initPs = init.pipelineStatus || 'in_delivery';
+          const useAsg = (initPs === 'in_delivery' || initPs === 'approved') && initAssignments.length > 0;
+          let splitPills = [];
+          if (useAsg) {
+            const sqAlloc = {};
+            initAssignments.forEach(asg => {
+              const person = asg.personId ? people.find(p => p.id === asg.personId) : null;
+              const sqId = person ? person.squad : asg.squad;
+              if (!sqId) return;
+              sqAlloc[sqId] = (sqAlloc[sqId] || 0) + (asg.allocation != null ? asg.allocation : 100);
+            });
+            const tot = Object.values(sqAlloc).reduce((a, v) => a + v, 0);
+            if (tot > 0) splitPills = Object.entries(sqAlloc).map(([sqId, val]) => ({ sqId, pct: Math.round(val / tot * 100) })).sort((a, b) => b.pct - a.pct);
+          } else {
+            const sqDays = {};
+            initEstimates.forEach(e => { if (!e.squad || !e.days) return; sqDays[e.squad] = (sqDays[e.squad] || 0) + e.days; });
+            const tot = Object.values(sqDays).reduce((a, v) => a + v, 0);
+            if (tot > 0) splitPills = Object.entries(sqDays).map(([sqId, val]) => ({ sqId, pct: Math.round(val / tot * 100) })).sort((a, b) => b.pct - a.pct);
+          }
+          return `<div class="form-group" style="grid-column:1/-1">
+            <div class="form-label" style="margin-bottom:8px">Squad Split${splitPills.length > 0 ? ' (' + (useAsg ? 'from assignments' : 'from estimates') + ')' : ''}</div>
+            ${splitPills.length > 0 ? `<div style="display:flex;flex-wrap:wrap;gap:4px">
+              ${splitPills.map(({ sqId, pct }) => { const sq = squads.find(s => s.id === sqId); return sq ? '<span class="tag">' + sq.name + ' ' + pct + '%</span>' : ''; }).join('')}
+            </div>` : '<div style="font-size:12px;color:var(--text-dim)">No squad allocation data</div>'}
+          </div>`;
+        })()}
       </div>
     </div>
     <div class="modal-footer">
@@ -651,14 +691,9 @@ function savePortfolioModal(initId) {
   const sponsor = document.getElementById('pf-sponsor').value.trim() || null;
   const budget = parseFloat(document.getElementById('pf-budget').value) || null;
   const expectedStart = document.getElementById('pf-start').value || null;
+  const dueDate = document.getElementById('pf-due').value || null;
   const expectedDuration = parseInt(document.getElementById('pf-duration').value) || null;
   const estimatedHeadcount = parseInt(document.getElementById('pf-hc').value) || null;
-
-  const estimatedCapacity = {};
-  squads.forEach(sq => {
-    const val = parseInt(document.getElementById('pf-ec-' + sq.id)?.value) || 0;
-    if (val > 0) estimatedCapacity[sq.id] = val;
-  });
 
   if (initId) {
     const init = initiatives.find(i => i.id === initId);
@@ -671,13 +706,9 @@ function savePortfolioModal(initId) {
       init.sponsor = sponsor;
       init.budget = budget;
       init.expectedStart = expectedStart;
+      init.dueDate = dueDate;
       init.expectedDuration = expectedDuration;
       init.estimatedHeadcount = estimatedHeadcount;
-      init.estimatedCapacity = estimatedCapacity;
-      if (pipelineStatus === 'in_delivery' && Object.keys(estimatedCapacity).length > 0) {
-        if (!init.allocations) init.allocations = {};
-        Object.assign(init.allocations, estimatedCapacity);
-      }
     }
   } else {
     const newInit = {
@@ -686,11 +717,11 @@ function savePortfolioModal(initId) {
       tier,
       status,
       owner,
-      allocations: pipelineStatus === 'in_delivery' ? { ...estimatedCapacity } : {},
+      allocations: {},
       budget,
-      estimatedCapacity,
       estimatedHeadcount,
       expectedStart,
+      dueDate,
       expectedDuration,
       sponsor,
       pipelineStatus,
