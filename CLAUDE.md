@@ -168,6 +168,13 @@ git add . && git commit -m "type: description" && git push
 # Railway auto-deploys on push to main
 ```
 
+**Preview server in worktrees** — use `.claude/start.sh` instead of `node server.js` directly.
+The script handles two issues that break preview testing in worktrees:
+1. Sources nvm so `node` is available (preview tools don't load shell profiles)
+2. Copies `.env` from the main repo if missing (worktrees don't get gitignored files)
+
+`.claude/launch.json` is configured to use this script automatically via `bash .claude/start.sh`.
+
 **No automated tests** — the test suite was permanently removed (see Hard Lesson #13). Manual UI testing only.
 
 **Local dev requires `DATABASE_URL` in `.env`**:
@@ -324,3 +331,10 @@ Before any significant feature work or risky deploy:
 3. `git commit -m "chore: checkpoint seed data"`
 4. `git push`
 This ensures the recovery baseline is always your latest stable data, not stale defaults. Export Backup (JSON download) provides an additional safety net independent of git.
+
+### 15. Preview server requires start.sh in worktrees
+Never run `node server.js` directly in a git worktree. Always use `.claude/start.sh` which handles:
+- Sourcing nvm (worktree shell doesn't have node in PATH)
+- Copying .env from main repo (gitignored, not in worktrees)
+
+Without this, the server will either fail to start (node not found) or crash silently (no DATABASE_URL).
