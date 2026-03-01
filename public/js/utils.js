@@ -388,6 +388,100 @@ function parseCsvType(str) {
   return 'contractor';
 }
 
+// ================================================================
+// ASSIGNMENT-BASED CAPACITY
+// ================================================================
+
+// Returns all initiative assignments for a given person.
+// Only counts approved/in_delivery initiatives.
+function getPersonAssignments(personId) {
+  const assignments = [];
+  let totalAllocated = 0;
+  initiatives.forEach(init => {
+    const ps = init.pipelineStatus || 'in_delivery';
+    if (ps !== 'approved' && ps !== 'in_delivery') return;
+    (init.assignments || []).forEach(r => {
+      if (r.personId !== personId) return;
+      const alloc = r.allocation != null ? r.allocation : 100;
+      totalAllocated += alloc;
+      assignments.push({
+        initiativeId: init.id,
+        initiativeName: init.name,
+        allocation: alloc,
+        role: r.role || '',
+      });
+    });
+  });
+  return {
+    personId,
+    totalAllocated,
+    remaining: Math.max(0, 100 - totalAllocated),
+    assignments,
+  };
+}
+
+// Returns Dev+QE capacity and assignment-based utilisation for a squad.
+function getSquadAvailableCapacity(squadId) {
+  const todayDate = new Date();
+  const devQePeople = [];
+
+  people.forEach(p => {
+    if (p.status !== 'active' || p.isVacant) return;
+    const disc = getDiscipline(p.role);
+    if (disc !== 'engineering' && disc !== 'qe') return;
+    // Exclude contractors past endDate
+    if (p.endDate && new Date(p.endDate) < todayDate) return;
+
+    let weight = 0;
+    if (p.squad === squadId) weight = p.secondarySquad ? 0.5 : 1;
+    else if (p.secondarySquad === squadId) weight = 0.5;
+    if (weight === 0) return;
+
+    const pa = getPersonAssignments(p.id);
+    // Only count allocation that reduces THIS squad's capacity
+    // (use homeSquad on each assignment to determine which squad is affected)
+    let allocForThisSquad = 0;
+    pa.assignments.forEach(a => {
+      const init = initiatives.find(i => i.id === a.initiativeId);
+      if (!init) return;
+      (init.assignments || []).forEach(r => {
+        if (r.personId !== p.id) return;
+        const alloc = r.allocation != null ? r.allocation : 100;
+        // This role reduces the squad that matches homeSquad (or squad if no homeSquad)
+        const affectedSquad = r.homeSquad || r.squad;
+        if (affectedSquad === squadId) {
+          allocForThisSquad += alloc;
+        }
+      });
+    });
+
+    devQePeople.push({
+      personId: p.id,
+      name: p.name,
+      role: p.role,
+      weight,
+      totalAllocated: pa.totalAllocated,
+      remaining: pa.remaining,
+      allocForThisSquad,
+      assignments: pa.assignments,
+    });
+  });
+
+  const deliveryHeadcount = devQePeople.reduce((a, p) => a + p.weight, 0);
+  const allocatedHeadcount = devQePeople.reduce((a, p) => a + (p.allocForThisSquad / 100) * p.weight, 0);
+  const availableHeadcount = Math.max(0, deliveryHeadcount - allocatedHeadcount);
+  const utilisationPct = deliveryHeadcount > 0 ? (allocatedHeadcount / deliveryHeadcount) * 100 : 0;
+
+  return {
+    squadId,
+    deliveryHeadcount,
+    allocatedHeadcount,
+    availableHeadcount,
+    utilisationPct,
+    people: devQePeople,
+  };
+}
+
 // Fuzzy-match a squad name string to a squadId. Returns null if no match.
 function matchSquadByName(name) {
   if (!name || !name.trim()) return null;

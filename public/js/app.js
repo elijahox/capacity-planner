@@ -96,7 +96,7 @@ function showView(view, btn) {
 // Highlight the correct nav button for the active view (used on boot after loadAndInit)
 function _highlightActiveNav() {
   const viewOrder = ['overview', 'squads', 'orgchart', 'people', 'contractors',
-                     'initiatives', 'pipeline', 'roadmap', 'demand', 'financials'];
+                     'portfolio', 'roadmap', 'demand', 'forecast', 'financials'];
   const navBtns = document.querySelectorAll('.nav-btn');
   navBtns.forEach(b => b.classList.remove('active'));
   const idx = viewOrder.indexOf(currentView);
@@ -113,10 +113,10 @@ function renderContent() {
     people:      renderPeople,
     orgchart:    renderOrgChart,
     contractors: renderContractorWatch,
-    initiatives: renderInitiatives,
+    portfolio:   renderPortfolio,
     roadmap:     renderRoadmap,
     demand:      renderDemand,
-    pipeline:    renderPipeline,
+    forecast:    renderForecast,
     financials:  renderFinancials,
   };
   document.getElementById('content').innerHTML = (views[currentView] || renderOverview)();

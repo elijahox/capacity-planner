@@ -33,7 +33,55 @@ function applyState(data) {
   if (!data) return;
   // Full replacement for arrays — DB data completely replaces defaults
   if (data.squads)          squads          = data.squads;
-  if (data.initiatives)     initiatives     = data.initiatives;
+  if (data.initiatives) {
+    initiatives = data.initiatives;
+    // Defensive migration: estimatedRoles → estimates + assignments
+    for (const init of initiatives) {
+      if (init.estimatedRoles && !init.estimates) {
+        init.estimates = [];
+        init.assignments = [];
+        for (const r of init.estimatedRoles) {
+          if (r.personId) {
+            init.assignments.push({
+              id: r.id || ('asg-' + Date.now() + '-' + Math.random().toString(36).slice(2,6)),
+              estimateId: null,
+              personId: r.personId,
+              role: r.role || '',
+              type: r.type || 'contractor',
+              allocation: r.allocation != null ? r.allocation : 100,
+              dayRate: r.dayRate || 0,
+              squad: r.squad || '',
+              homeSquad: r.homeSquad || null,
+              inBudget: r.inBudget !== false,
+            });
+          } else {
+            init.estimates.push({
+              id: r.id || ('est-' + Date.now() + '-' + Math.random().toString(36).slice(2,6)),
+              role: r.role || '',
+              type: r.type || 'contractor',
+              days: r.days || 0,
+              dayRate: r.dayRate || 0,
+              budget: r.budget || 0,
+              squad: r.squad || '',
+            });
+          }
+        }
+        delete init.estimatedRoles;
+      }
+      if (!init.estimates) init.estimates = [];
+      if (!init.assignments) init.assignments = [];
+      for (const est of init.estimates) {
+        if (!est.type) est.type = 'contractor';
+      }
+      for (const asg of init.assignments) {
+        if (asg.allocation === undefined) asg.allocation = 100;
+        if (asg.inBudget === undefined) asg.inBudget = true;
+        if (asg.personId === undefined) asg.personId = null;
+        if (asg.homeSquad === undefined) asg.homeSquad = null;
+        if (asg.estimateId === undefined) asg.estimateId = null;
+      }
+    }
+  }
   if (data.people)          people          = data.people;
   // Full replacement for objects — wipe defaults, use only DB data.
   // Object.assign was merging, leaving stale default keys behind.

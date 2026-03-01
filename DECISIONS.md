@@ -107,11 +107,29 @@ default keys from persisting. An `_initialized` flag blocks `scheduleSave()` and
 `beforeunload` from firing before API data has loaded, preventing defaults from
 overwriting real data in the database.
 
+## 2026-02-28: estimatedRoles on initiatives
+Added `estimatedRoles` array to initiatives for role-level business case estimates (role, days, dayRate, budget, squad). All values are direct inputs — no auto-calculations. Existing initiatives default to empty array. This will eventually replace `allocations` and `estimatedCapacity`.
+
+## 2026-02-28: Merged Pipeline + Initiatives into Portfolio view
+Merged Pipeline and Initiatives views into a single Portfolio view. Tier-grouped layout with status filter bar. Role estimates (estimatedRoles) are managed inline on each initiative card. Old pipeline.js and initiatives.js removed.
+
+## 2026-02-28: Added Capacity Forecast view
+Added Capacity Forecast view showing quarterly delivery headcount (Dev + QE only) per squad with stacked bars for committed vs pipeline demand. Reads from estimatedRoles on initiatives, with fallback to legacy allocations for transition. Australian FY quarters. Drill-down modal shows initiative breakdown per cell.
+
+## 2026-02-28: Assignment fields on estimatedRoles
+Expanded estimatedRoles with assignment fields: `allocation` (%), `inBudget` (bool), `personId` (links to people array), `homeSquad` (org chart squad when different from working squad). Supports both anonymous business case estimates and named actual assignments.
+
+## 2026-02-28: Funding type on estimatedRoles
+Added `type` field to estimatedRoles entries — `'perm'` (OPEX) or `'contractor'` (CAPEX). Indicates the funding type from the business case. Defaults to `'contractor'` for existing data via defensive migration in `applyState`. Future: cross-reference OPEX estimates against actual permanent headcount availability.
+
 ## 2026-02-28: Save as Seed, Export/Import, test removal
 Added "Save as Seed" (`POST /api/seed`) to checkpoint live DB state into `seed.js` from
 the app UI. Added JSON export/import for manual backups. Removed test suite and
 `deleteState()` entirely — tests were connecting to production DB and corrupting data.
 Recovery strategy is now: Railway auto-backups + Save as Seed + JSON export.
 
-## 2026-03-01: Org chart assignment utilisation
-Added `getPersonAssignments(personId)` and `getSquadAvailableCapacity(squadId)` to utils.js, deriving person-level assignment percentages from existing squad-level initiative allocations. Squad headers now show Dev+QE assigned vs available (color-coded green/amber/red by utilisation %), and person cards display assignment badges with initiative breakdown tooltips.
+## 2026-03-01: Initiative assignment capacity reduction
+Initiative assignments now reduce home squad capacity. When a person (Dev/QE) is assigned to an approved/in_delivery initiative via assignments, their allocation percentage is subtracted from their home squad's available capacity. Org chart shows per-person assignment status and squad-level utilisation summary. Forecast view uses actual assignments where available, falling back to estimate-based calculations for unfilled roles. Overview shows total org utilisation. Moving to in_delivery soft-prompts if roles are unfilled.
+
+## 2026-03-01: Split estimatedRoles into estimates and assignments
+Split `estimatedRoles` on initiatives into `estimates` (business case line items: role, days, dayRate, budget, squad, type) and `assignments` (delivery reality: personId, allocation, homeSquad, inBudget, estimateId linking back to an estimate). Migration in applyState() handles old data transparently. Estimates are read-only when initiative is approved/in_delivery (with temporary unlock). Forecast reads assignments for assigned demand and unlinked estimates for unassigned demand. Supports budget variance and recovery rate analysis (estimated cost vs actual cost including OPEX investment).
