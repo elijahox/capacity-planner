@@ -5,6 +5,7 @@
 let _portfolioFilter = 'all';
 let _portfolioFilterActive = false;
 let _portfolioExpanded = {}; // { initId: true } for expanded cards
+let _portfolioEstimatesUnlocked = {}; // { initId: true } for temporarily unlocked estimates
 
 function setPortfolioFilter(v) {
   _portfolioFilter = v;
@@ -93,12 +94,13 @@ function renderPortfolio() {
 function renderPortfolioCard(init) {
   const ps = init.pipelineStatus || 'in_delivery';
   const expanded = _portfolioExpanded[init.id];
-  const roles = init.estimatedRoles || [];
+  const estimates = init.estimates || [];
+  const assignments = init.assignments || [];
   const allocs = Object.entries(init.allocations || {}).filter(([,v]) => v > 0);
 
-  // Role estimate summaries
-  const totalRoleBudget = roles.reduce((a, r) => a + (r.budget || 0), 0);
-  const totalRoleDays = roles.reduce((a, r) => a + (r.days || 0), 0);
+  // Estimate summaries
+  const totalRoleBudget = estimates.reduce((a, e) => a + (e.budget || 0), 0);
+  const totalRoleDays = estimates.reduce((a, e) => a + (e.days || 0), 0);
 
   // People equivalent from allocations (same calc as old initiatives view)
   const totalPpl = allocs.reduce((acc, [sqId, pct]) => {
@@ -126,7 +128,8 @@ function renderPortfolioCard(init) {
           ${init.expectedDuration ? `<span>${init.expectedDuration}w</span>` : ''}
           ${totalRoleBudget > 0 ? `<span style="font-family:'JetBrains Mono',monospace">${portfolioFmtBudget(totalRoleBudget)}</span>` : ''}
           ${totalRoleDays > 0 ? `<span style="font-family:'JetBrains Mono',monospace">${totalRoleDays} days</span>` : ''}
-          ${roles.length > 0 ? `<span>${roles.length} role${roles.length !== 1 ? 's' : ''} estimated</span>` : ''}
+          ${estimates.length > 0 ? `<span>${estimates.length} estimate${estimates.length !== 1 ? 's' : ''}</span>` : ''}
+          ${assignments.length > 0 ? `<span>${assignments.length} assignment${assignments.length !== 1 ? 's' : ''}</span>` : ''}
         </div>
         ${allocs.length > 0 ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px">
           ${allocs.slice(0, 5).map(([sqId, pct]) => { const sq = squads.find(s => s.id === sqId); return sq ? `<span class="tag">${sq.name} ${pct}%</span>` : ''; }).join('')}
@@ -144,10 +147,14 @@ function renderPortfolioCard(init) {
 }
 
 function renderPortfolioExpanded(init) {
-  const roles = init.estimatedRoles || [];
+  const estimates = init.estimates || [];
+  const assignments = init.assignments || [];
   const allocs = Object.entries(init.allocations || {}).filter(([,v]) => v > 0);
   const estCap = Object.entries(init.estimatedCapacity || {}).filter(([,v]) => v > 0);
   const ps = init.pipelineStatus || 'in_delivery';
+
+  // Lock state for estimates
+  const isLocked = (ps === 'approved' || ps === 'in_delivery' || ps === 'complete') && !_portfolioEstimatesUnlocked[init.id];
 
   // People equivalent
   const totalPpl = allocs.reduce((acc, [sqId, pct]) => {
@@ -166,6 +173,18 @@ function renderPortfolioExpanded(init) {
     return `<optgroup label="${tribe.name}">${tribeSquads.map(sq => `<option value="${sq.id}">${sq.name}</option>`).join('')}</optgroup>`;
   }).join('');
 
+  // ── Build unfilled estimates list for assignment linking ──
+  const linkedEstimateIds = new Set(assignments.filter(a => a.estimateId).map(a => a.estimateId));
+
+  // Assignment HC equivalent
+  const totalAssignedHC = assignments.reduce((a, asg) => a + ((asg.allocation != null ? asg.allocation : 100) / 100), 0);
+
+  // ── Input style constants ──
+  const inputStyle = 'width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:4px;padding:4px 6px;font-size:13px;background:var(--bg);color:var(--text)';
+  const numStyle = inputStyle + ';text-align:right;font-family:\'JetBrains Mono\',monospace';
+  const readonlyStyle = 'width:100%;box-sizing:border-box;border:1px solid transparent;border-radius:4px;padding:4px 6px;font-size:13px;background:transparent;color:var(--text)';
+  const readonlyNumStyle = readonlyStyle + ';text-align:right;font-family:\'JetBrains Mono\',monospace';
+
   return `<div style="border-top:1px solid var(--border);padding:14px 18px;background:var(--bg2)">
     <div style="display:flex;gap:24px;margin-bottom:14px;flex-wrap:wrap;font-size:12px;color:var(--text-muted)">
       ${allocs.length > 0 ? `<span>People equiv: <strong style="color:var(--text)">${totalPpl.toFixed(1)}</strong></span>` : ''}
@@ -182,143 +201,290 @@ function renderPortfolioExpanded(init) {
       </div>
     </div>` : ''}
 
-    <div style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:8px">ROLE ESTIMATES</div>
+    <!-- ── ESTIMATES (Business Case) ── -->
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <div style="font-size:12px;font-weight:600;color:var(--text-muted)">ESTIMATES</div>
+      ${isLocked ? `<button style="background:none;border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-size:11px;cursor:pointer;color:var(--text-muted)" onclick="unlockPortfolioEstimates('${init.id}')" title="Unlock estimates for editing">🔓 Unlock</button>` : ''}
+      ${!isLocked && (ps === 'approved' || ps === 'in_delivery' || ps === 'complete') ? `<button style="background:none;border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-size:11px;cursor:pointer;color:var(--text-muted)" onclick="unlockPortfolioEstimates('${init.id}')" title="Lock estimates">🔒 Lock</button>` : ''}
+      <span style="font-size:11px;color:var(--text-dim)">${isLocked ? 'Read-only — locked at approval' : ''}</span>
+    </div>
     <div style="overflow-x:auto">
       <table style="width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed">
         <colgroup>
           <col style="width:auto">
-          <col style="width:160px">
-          <col style="width:140px">
-          <col style="width:68px">
+          <col style="width:120px">
           <col style="width:66px">
           <col style="width:82px">
           <col style="width:90px">
+          <col style="width:150px">
+          ${!isLocked ? '<col style="width:30px">' : ''}
+        </colgroup>
+        <thead>
+          <tr style="border-bottom:1px solid var(--border)">
+            <th style="text-align:left;padding:6px 8px;font-weight:600;font-size:11px;color:var(--text-muted)">Role</th>
+            <th style="text-align:left;padding:6px 8px;font-weight:600;font-size:11px;color:var(--text-muted)">Type</th>
+            <th style="text-align:left;padding:6px 8px;font-weight:600;font-size:11px;color:var(--text-muted)">Days</th>
+            <th style="text-align:left;padding:6px 8px;font-weight:600;font-size:11px;color:var(--text-muted)">Day Rate</th>
+            <th style="text-align:left;padding:6px 8px;font-weight:600;font-size:11px;color:var(--text-muted)">Budget</th>
+            <th style="text-align:left;padding:6px 8px;font-weight:600;font-size:11px;color:var(--text-muted)">Squad</th>
+            ${!isLocked ? '<th></th>' : ''}
+          </tr>
+        </thead>
+        <tbody>
+          ${estimates.length === 0 ? `<tr><td colspan="${isLocked ? 6 : 7}" style="padding:12px 8px;text-align:center;color:var(--text-dim);font-size:12px">No estimates yet</td></tr>` : ''}
+          ${estimates.map((e, idx) => {
+            if (isLocked) {
+              const sqName = e.squad ? (squads.find(s => s.id === e.squad)?.name || e.squad) : '—';
+              const typeLabel = e.type === 'perm' ? 'Perm (OPEX)' : 'Contractor (CAPEX)';
+              return `<tr style="border-bottom:1px solid var(--border)">
+                <td style="padding:4px 8px">${e.role || '—'}</td>
+                <td style="padding:4px 8px;font-size:12px;color:var(--text-muted)">${typeLabel}</td>
+                <td style="padding:4px 8px;font-family:'JetBrains Mono',monospace;text-align:right">${e.days || 0}</td>
+                <td style="padding:4px 8px;font-family:'JetBrains Mono',monospace;text-align:right">${e.dayRate ? '$' + e.dayRate.toLocaleString() : '—'}</td>
+                <td style="padding:4px 8px;font-family:'JetBrains Mono',monospace;text-align:right">${e.budget ? portfolioFmtBudget(e.budget) : '—'}</td>
+                <td style="padding:4px 8px;font-size:12px;color:var(--text-muted)">${sqName}</td>
+              </tr>`;
+            }
+            return `<tr style="border-bottom:1px solid var(--border)">
+              <td style="padding:4px 8px"><input type="text" value="${(e.role || '').replace(/"/g, '&quot;')}" placeholder="e.g. Senior Developer" style="${inputStyle}" onchange="updatePortfolioEstimate('${init.id}',${idx},'role',this.value)"></td>
+              <td style="padding:4px 8px"><select style="${inputStyle}" onchange="updatePortfolioEstimate('${init.id}',${idx},'type',this.value)">
+                <option value="contractor"${(e.type || 'contractor') === 'contractor' ? ' selected' : ''}>Contractor (CAPEX)</option>
+                <option value="perm"${e.type === 'perm' ? ' selected' : ''}>Permanent (OPEX)</option>
+              </select></td>
+              <td style="padding:4px 8px"><input type="number" value="${e.days || ''}" min="0" style="${numStyle}" onchange="updatePortfolioEstimate('${init.id}',${idx},'days',+this.value||0)"></td>
+              <td style="padding:4px 8px"><input type="number" value="${e.dayRate || ''}" min="0" style="${numStyle}" onchange="updatePortfolioEstimate('${init.id}',${idx},'dayRate',+this.value||0)"></td>
+              <td style="padding:4px 8px"><input type="number" value="${e.budget || ''}" min="0" style="${numStyle}" onchange="updatePortfolioEstimate('${init.id}',${idx},'budget',+this.value||0)"></td>
+              <td style="padding:4px 8px"><select style="${inputStyle}" onchange="updatePortfolioEstimate('${init.id}',${idx},'squad',this.value)">
+                <option value="">— None —</option>
+                ${squadOpts.replace(new RegExp(`value="${e.squad}"`), `value="${e.squad}" selected`)}
+              </select></td>
+              <td style="padding:4px 4px;text-align:center"><button style="background:none;border:none;cursor:pointer;color:var(--text-dim);font-size:16px;padding:2px 4px" title="Remove" onclick="removePortfolioEstimate('${init.id}',${idx})">&#x2715;</button></td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+        ${estimates.length > 0 ? `<tfoot>
+          <tr style="border-top:2px solid var(--border);font-weight:600;font-size:12px">
+            <td style="padding:6px 8px">Total</td>
+            <td style="padding:6px 8px"></td>
+            <td style="padding:6px 8px;font-family:'JetBrains Mono',monospace;text-align:right">${estimates.reduce((a, e) => a + (e.days || 0), 0)}</td>
+            <td style="padding:6px 8px"></td>
+            <td style="padding:6px 8px;font-family:'JetBrains Mono',monospace;text-align:right">${portfolioFmtBudget(estimates.reduce((a, e) => a + (e.budget || 0), 0))}</td>
+            <td colspan="${isLocked ? 1 : 2}"></td>
+          </tr>
+        </tfoot>` : ''}
+      </table>
+    </div>
+    ${!isLocked ? `<button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="addPortfolioEstimate('${init.id}')">+ Add Estimate</button>` : ''}
+
+    <!-- ── ASSIGNMENTS (Actual People) ── -->
+    <div style="font-size:12px;font-weight:600;color:var(--text-muted);margin-top:18px;margin-bottom:8px">ASSIGNMENTS</div>
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed">
+        <colgroup>
+          <col style="width:160px">
+          <col style="width:auto">
+          <col style="width:100px">
+          <col style="width:68px">
+          <col style="width:82px">
+          <col style="width:150px">
           <col style="width:150px">
           <col style="width:46px">
           <col style="width:30px">
         </colgroup>
         <thead>
           <tr style="border-bottom:1px solid var(--border)">
-            <th style="text-align:left;padding:6px 8px;font-weight:600;font-size:11px;color:var(--text-muted)">Role</th>
             <th style="text-align:left;padding:6px 8px;font-weight:600;font-size:11px;color:var(--text-muted)">Person</th>
+            <th style="text-align:left;padding:6px 8px;font-weight:600;font-size:11px;color:var(--text-muted)">Role</th>
             <th style="text-align:left;padding:6px 8px;font-weight:600;font-size:11px;color:var(--text-muted)">Type</th>
             <th style="text-align:left;padding:6px 8px;font-weight:600;font-size:11px;color:var(--text-muted)">Alloc</th>
-            <th style="text-align:left;padding:6px 8px;font-weight:600;font-size:11px;color:var(--text-muted)">Days</th>
             <th style="text-align:left;padding:6px 8px;font-weight:600;font-size:11px;color:var(--text-muted)">Day Rate</th>
-            <th style="text-align:left;padding:6px 8px;font-weight:600;font-size:11px;color:var(--text-muted)">Budget</th>
             <th style="text-align:left;padding:6px 8px;font-weight:600;font-size:11px;color:var(--text-muted)">Squad</th>
+            <th style="text-align:left;padding:6px 8px;font-weight:600;font-size:11px;color:var(--text-muted)">Fills&nbsp;Estimate</th>
             <th style="text-align:center;padding:6px 4px;font-weight:600;font-size:11px;color:var(--text-muted)">In&nbsp;$</th>
             <th></th>
           </tr>
         </thead>
         <tbody>
-          ${roles.length === 0 ? `<tr><td colspan="10" style="padding:12px 8px;text-align:center;color:var(--text-dim);font-size:12px">No role estimates yet</td></tr>` : ''}
-          ${roles.map((r, idx) => {
-            const personObj = r.personId ? people.find(p => p.id === r.personId) : null;
-            const homeSquadLabel = (function() {
-              if (!r.homeSquad || r.homeSquad === r.squad) return '';
-              const hs = squads.find(s => s.id === r.homeSquad);
+          ${assignments.length === 0 ? `<tr><td colspan="9" style="padding:12px 8px;text-align:center;color:var(--text-dim);font-size:12px">No assignments yet</td></tr>` : ''}
+          ${assignments.map((asg, idx) => {
+            const personObj = asg.personId ? people.find(p => p.id === asg.personId) : null;
+            const homeSquadLabel = (() => {
+              if (!asg.homeSquad || asg.homeSquad === asg.squad) return '';
+              const hs = squads.find(s => s.id === asg.homeSquad);
               return hs ? `<div style="font-size:10px;color:var(--text-muted);margin-top:2px">(from ${hs.name})</div>` : '';
             })();
+            const typeLabel = asg.type === 'perm' ? 'Perm' : asg.type === 'msp' ? 'MSP' : 'Contractor';
+
+            // Build unfilled estimates dropdown options — include current link + all unfilled
+            const estimateOpts = estimates.map(e => {
+              const isFilled = linkedEstimateIds.has(e.id) && asg.estimateId !== e.id;
+              if (isFilled) return '';
+              const label = (e.role || 'Unnamed') + (e.squad ? ' (' + (squads.find(s => s.id === e.squad)?.name || e.squad) + ')' : '');
+              return `<option value="${e.id}"${asg.estimateId === e.id ? ' selected' : ''}>${label}</option>`;
+            }).join('');
+
             return `<tr style="border-bottom:1px solid var(--border)">
-            <td style="padding:4px 8px"><input type="text" value="${(r.role || '').replace(/"/g, '&quot;')}" placeholder="e.g. Senior Developer" style="width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:4px;padding:4px 6px;font-size:13px;background:var(--bg);color:var(--text)" onchange="updatePortfolioRole('${init.id}',${idx},'role',this.value)"></td>
-            <td style="padding:4px 8px"><select style="width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:4px;padding:4px 6px;font-size:13px;background:var(--bg);color:var(--text)" onchange="assignPortfolioPerson('${init.id}',${idx},this.value)">
-              <option value="">— Unassigned —</option>
-              ${people.filter(p => p.status === 'active' && !p.isVacant).sort((a,b) => a.name.localeCompare(b.name)).map(p => `<option value="${p.id}"${r.personId === p.id ? ' selected' : ''}>${p.name}</option>`).join('')}
-            </select></td>
-            <td style="padding:4px 8px"><select style="width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:4px;padding:4px 6px;font-size:13px;background:var(--bg);color:var(--text)" onchange="updatePortfolioRole('${init.id}',${idx},'type',this.value)">
-              <option value="contractor"${(r.type || 'contractor') === 'contractor' ? ' selected' : ''}>Contractor (CAPEX)</option>
-              <option value="perm"${r.type === 'perm' ? ' selected' : ''}>Permanent (OPEX)</option>
-            </select></td>
-            <td style="padding:4px 8px"><input type="number" value="${r.allocation != null ? r.allocation : 100}" min="0" max="100" placeholder="%" style="width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:4px;padding:4px 6px;font-size:13px;text-align:right;font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--text)" onchange="updatePortfolioRole('${init.id}',${idx},'allocation',+this.value||0)"></td>
-            <td style="padding:4px 8px"><input type="number" value="${r.days || ''}" min="0" style="width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:4px;padding:4px 6px;font-size:13px;text-align:right;font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--text)" onchange="updatePortfolioRole('${init.id}',${idx},'days',+this.value||0)"></td>
-            <td style="padding:4px 8px"><input type="number" value="${r.dayRate || ''}" min="0" style="width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:4px;padding:4px 6px;font-size:13px;text-align:right;font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--text)" onchange="updatePortfolioRole('${init.id}',${idx},'dayRate',+this.value||0)"></td>
-            <td style="padding:4px 8px"><input type="number" value="${r.budget || ''}" min="0" style="width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:4px;padding:4px 6px;font-size:13px;text-align:right;font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--text)" onchange="updatePortfolioRole('${init.id}',${idx},'budget',+this.value||0)"></td>
-            <td style="padding:4px 8px"><select style="width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:4px;padding:4px 6px;font-size:13px;background:var(--bg);color:var(--text)" onchange="updatePortfolioRole('${init.id}',${idx},'squad',this.value)">
-              <option value="">— None —</option>
-              ${squadOpts.replace(`value="${r.squad}"`, `value="${r.squad}" selected`)}
-            </select>${homeSquadLabel}</td>
-            <td style="padding:4px 4px;text-align:center"><input type="checkbox" ${r.inBudget !== false ? 'checked' : ''} title="In budget" onchange="updatePortfolioRole('${init.id}',${idx},'inBudget',this.checked)" style="cursor:pointer"></td>
-            <td style="padding:4px 4px;text-align:center"><button style="background:none;border:none;cursor:pointer;color:var(--text-dim);font-size:16px;padding:2px 4px" title="Remove" onclick="removePortfolioRole('${init.id}',${idx})">&#x2715;</button></td>
-          </tr>`}).join('')}
+              <td style="padding:4px 8px"><select style="${inputStyle}" onchange="assignPortfolioAssignmentPerson('${init.id}',${idx},this.value)">
+                <option value="">— Select Person —</option>
+                ${people.filter(p => p.status === 'active' && !p.isVacant).sort((a,b) => a.name.localeCompare(b.name)).map(p => `<option value="${p.id}"${asg.personId === p.id ? ' selected' : ''}>${p.name}</option>`).join('')}
+              </select></td>
+              <td style="padding:4px 8px"><input type="text" value="${(asg.role || '').replace(/"/g, '&quot;')}" placeholder="e.g. Developer" style="${inputStyle}" onchange="updatePortfolioAssignment('${init.id}',${idx},'role',this.value)"></td>
+              <td style="padding:4px 8px;font-size:12px;color:var(--text-muted)">${typeLabel}${homeSquadLabel}</td>
+              <td style="padding:4px 8px"><input type="number" value="${asg.allocation != null ? asg.allocation : 100}" min="0" max="100" placeholder="%" style="${numStyle}" onchange="updatePortfolioAssignment('${init.id}',${idx},'allocation',+this.value||0)"></td>
+              <td style="padding:4px 8px"><input type="number" value="${asg.dayRate || ''}" min="0" style="${numStyle}" onchange="updatePortfolioAssignment('${init.id}',${idx},'dayRate',+this.value||0)"></td>
+              <td style="padding:4px 8px"><select style="${inputStyle}" onchange="updatePortfolioAssignment('${init.id}',${idx},'squad',this.value)">
+                <option value="">— None —</option>
+                ${squadOpts.replace(new RegExp(`value="${asg.squad}"`), `value="${asg.squad}" selected`)}
+              </select></td>
+              <td style="padding:4px 8px"><select style="${inputStyle}" onchange="linkAssignmentToEstimate('${init.id}',${idx},this.value)">
+                <option value="">— No linked estimate —</option>
+                ${estimateOpts}
+              </select></td>
+              <td style="padding:4px 4px;text-align:center"><input type="checkbox" ${asg.inBudget !== false ? 'checked' : ''} title="In budget" onchange="updatePortfolioAssignment('${init.id}',${idx},'inBudget',this.checked)" style="cursor:pointer"></td>
+              <td style="padding:4px 4px;text-align:center"><button style="background:none;border:none;cursor:pointer;color:var(--text-dim);font-size:16px;padding:2px 4px" title="Remove" onclick="removePortfolioAssignment('${init.id}',${idx})">&#x2715;</button></td>
+            </tr>`;
+          }).join('')}
         </tbody>
-        ${roles.length > 0 ? `<tfoot>
+        ${assignments.length > 0 ? `<tfoot>
           <tr style="border-top:2px solid var(--border);font-weight:600;font-size:12px">
             <td style="padding:6px 8px">Total</td>
             <td style="padding:6px 8px"></td>
             <td style="padding:6px 8px"></td>
-            <td style="padding:6px 8px"></td>
-            <td style="padding:6px 8px;font-family:'JetBrains Mono',monospace">${roles.reduce((a, r) => a + (r.days || 0), 0)}</td>
-            <td style="padding:6px 8px"></td>
-            <td style="padding:6px 8px;font-family:'JetBrains Mono',monospace">${portfolioFmtBudget(roles.reduce((a, r) => a + (r.budget || 0), 0))}</td>
-            <td colspan="3"></td>
+            <td style="padding:6px 8px;font-family:'JetBrains Mono',monospace;text-align:right">${assignments.reduce((a, asg) => a + (asg.allocation != null ? asg.allocation : 100), 0)}%</td>
+            <td colspan="5" style="padding:6px 8px;font-size:11px;color:var(--text-muted)">${assignments.length} assignment${assignments.length !== 1 ? 's' : ''} · ${totalAssignedHC.toFixed(1)} HC equiv</td>
           </tr>
         </tfoot>` : ''}
       </table>
     </div>
-    <button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="addPortfolioRole('${init.id}')">+ Add Role</button>
+    <button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="addPortfolioAssignment('${init.id}')">+ Add Assignment</button>
   </div>`;
 }
 
-// ── Role estimate inline editing ─────────────────────────────────
+// ── Estimate CRUD ────────────────────────────────────────────────
 
-function addPortfolioRole(initId) {
+function addPortfolioEstimate(initId) {
   const init = initiatives.find(i => i.id === initId);
   if (!init) return;
-  if (!init.estimatedRoles) init.estimatedRoles = [];
-  init.estimatedRoles.push({
-    id: 'er-' + Date.now(),
+  if (!init.estimates) init.estimates = [];
+  init.estimates.push({
+    id: 'est-' + Date.now(),
     role: '',
     type: 'contractor',
     days: 0,
     dayRate: 0,
     budget: 0,
     squad: '',
-    allocation: 100,
-    inBudget: true,
-    personId: null,
-    homeSquad: null,
   });
   _portfolioExpanded[initId] = true;
   scheduleSave();
+  _portfolioFilterActive = true;
   renderContent();
 }
 
-function assignPortfolioPerson(initId, idx, personId) {
+function updatePortfolioEstimate(initId, idx, field, value) {
   const init = initiatives.find(i => i.id === initId);
-  if (!init || !init.estimatedRoles || !init.estimatedRoles[idx]) return;
-  const role = init.estimatedRoles[idx];
-  role.personId = personId || null;
+  if (!init || !init.estimates || !init.estimates[idx]) return;
+  init.estimates[idx][field] = value;
+  scheduleSave();
+  _portfolioFilterActive = true;
+  renderContent();
+}
+
+function removePortfolioEstimate(initId, idx) {
+  const init = initiatives.find(i => i.id === initId);
+  if (!init || !init.estimates) return;
+  const removedId = init.estimates[idx].id;
+  init.estimates.splice(idx, 1);
+  // Unlink any assignments that referenced this estimate
+  (init.assignments || []).forEach(a => {
+    if (a.estimateId === removedId) a.estimateId = null;
+  });
+  scheduleSave();
+  _portfolioFilterActive = true;
+  renderContent();
+}
+
+function unlockPortfolioEstimates(initId) {
+  _portfolioEstimatesUnlocked[initId] = !_portfolioEstimatesUnlocked[initId];
+  _portfolioFilterActive = true;
+  renderContent();
+}
+
+// ── Assignment CRUD ──────────────────────────────────────────────
+
+function addPortfolioAssignment(initId) {
+  const init = initiatives.find(i => i.id === initId);
+  if (!init) return;
+  if (!init.assignments) init.assignments = [];
+  init.assignments.push({
+    id: 'asg-' + Date.now(),
+    estimateId: null,
+    personId: null,
+    role: '',
+    type: 'contractor',
+    allocation: 100,
+    dayRate: 0,
+    squad: '',
+    homeSquad: null,
+    inBudget: false,
+  });
+  _portfolioExpanded[initId] = true;
+  scheduleSave();
+  _portfolioFilterActive = true;
+  renderContent();
+}
+
+function updatePortfolioAssignment(initId, idx, field, value) {
+  const init = initiatives.find(i => i.id === initId);
+  if (!init || !init.assignments || !init.assignments[idx]) return;
+  init.assignments[idx][field] = value;
+  scheduleSave();
+  _portfolioFilterActive = true;
+  renderContent();
+}
+
+function assignPortfolioAssignmentPerson(initId, idx, personId) {
+  const init = initiatives.find(i => i.id === initId);
+  if (!init || !init.assignments || !init.assignments[idx]) return;
+  const asg = init.assignments[idx];
+  asg.personId = personId || null;
   if (personId) {
     const person = people.find(p => p.id === personId);
     if (person) {
-      // Auto-populate role if empty
-      if (!role.role) role.role = person.role || '';
-      // Set homeSquad to person's primary squad
-      role.homeSquad = person.squad || null;
+      asg.role = person.role || '';
+      asg.type = (person.type === 'msp' ? 'contractor' : person.type) || 'contractor';
+      asg.dayRate = person.dayRate || asg.dayRate;
+      asg.homeSquad = person.squad || null;
     }
   } else {
-    role.homeSquad = null;
+    asg.homeSquad = null;
   }
   scheduleSave();
   _portfolioFilterActive = true;
   renderContent();
 }
 
-function updatePortfolioRole(initId, idx, field, value) {
+function linkAssignmentToEstimate(initId, idx, estimateId) {
   const init = initiatives.find(i => i.id === initId);
-  if (!init || !init.estimatedRoles || !init.estimatedRoles[idx]) return;
-  init.estimatedRoles[idx][field] = value;
+  if (!init || !init.assignments || !init.assignments[idx]) return;
+  const asg = init.assignments[idx];
+  asg.estimateId = estimateId || null;
+  if (estimateId) {
+    const est = (init.estimates || []).find(e => e.id === estimateId);
+    if (est) {
+      if (!asg.squad) asg.squad = est.squad || '';
+      asg.inBudget = true;
+    }
+  }
   scheduleSave();
-  // Re-render to update totals but preserve expanded state
   _portfolioFilterActive = true;
   renderContent();
 }
 
-function removePortfolioRole(initId, idx) {
+function removePortfolioAssignment(initId, idx) {
   const init = initiatives.find(i => i.id === initId);
-  if (!init || !init.estimatedRoles) return;
-  init.estimatedRoles.splice(idx, 1);
+  if (!init || !init.assignments) return;
+  init.assignments.splice(idx, 1);
   scheduleSave();
   _portfolioFilterActive = true;
   renderContent();
@@ -330,20 +496,21 @@ function advancePortfolioStatus(initId, newStatus) {
   const init = initiatives.find(i => i.id === initId);
   if (!init) return;
 
-  // Soft prompt when moving to in_delivery with unfilled roles
+  // Soft prompt when moving to in_delivery with unfilled estimates
   if (newStatus === 'in_delivery') {
-    const roles = init.estimatedRoles || [];
-    if (roles.length > 0) {
-      const filled = roles.filter(r => r.personId).length;
-      const unfilled = roles.length - filled;
+    const estimates = init.estimates || [];
+    const assignments = init.assignments || [];
+    if (estimates.length > 0) {
+      const linkedIds = new Set(assignments.filter(a => a.estimateId).map(a => a.estimateId));
+      const unfilled = estimates.filter(e => !linkedIds.has(e.id)).length;
       if (unfilled > 0) {
         openModal(`
           <div class="modal-header">
-            <div class="modal-title">Unfilled Roles</div>
+            <div class="modal-title">Unfilled Estimates</div>
             <button class="modal-close" onclick="closeModal()">&times;</button>
           </div>
           <div class="modal-body">
-            <p style="margin:0 0 12px">${unfilled} of ${roles.length} role${roles.length !== 1 ? 's' : ''} are not yet assigned to a person. Move <strong>${init.name}</strong> to In Delivery anyway?</p>
+            <p style="margin:0 0 12px">${unfilled} of ${estimates.length} estimated role${estimates.length !== 1 ? 's' : ''} are not yet assigned to a person. Move <strong>${init.name}</strong> to In Delivery anyway?</p>
           </div>
           <div class="modal-footer">
             <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
@@ -528,7 +695,8 @@ function savePortfolioModal(initId) {
       expectedDuration,
       sponsor,
       pipelineStatus,
-      estimatedRoles: [],
+      estimates: [],
+      assignments: [],
     };
     initiatives.push(newInit);
   }

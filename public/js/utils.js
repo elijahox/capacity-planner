@@ -358,7 +358,7 @@ function getPersonAssignments(personId) {
   initiatives.forEach(init => {
     const ps = init.pipelineStatus || 'in_delivery';
     if (ps !== 'approved' && ps !== 'in_delivery') return;
-    (init.estimatedRoles || []).forEach(r => {
+    (init.assignments || []).forEach(r => {
       if (r.personId !== personId) return;
       const alloc = r.allocation != null ? r.allocation : 100;
       totalAllocated += alloc;
@@ -402,7 +402,7 @@ function getSquadAvailableCapacity(squadId) {
     pa.assignments.forEach(a => {
       const init = initiatives.find(i => i.id === a.initiativeId);
       if (!init) return;
-      (init.estimatedRoles || []).forEach(r => {
+      (init.assignments || []).forEach(r => {
         if (r.personId !== p.id) return;
         const alloc = r.allocation != null ? r.allocation : 100;
         // This role reduces the squad that matches homeSquad (or squad if no homeSquad)

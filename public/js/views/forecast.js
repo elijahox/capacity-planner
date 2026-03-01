@@ -107,37 +107,38 @@ function _fcInitDateRange(init) {
 // ── Demand per initiative/squad/quarter ──────────────────────────
 
 function _fcDemand(init, squadId, quarter, qWorkingDays, initWDCache) {
-  const roles = init.estimatedRoles || [];
+  const assignments = init.assignments || [];
+  const estimates = init.estimates || [];
   const ps = init.pipelineStatus || 'in_delivery';
-  const squadRoles = roles.filter(r => r.squad === squadId);
 
-  // ── Assignment-based path: roles with a personId use allocation % directly ──
-  const assignedRoles = squadRoles.filter(r => r.personId);
-  const unassignedRoles = squadRoles.filter(r => !r.personId && r.days > 0);
+  // ── Assignment-based path: actual people assigned to this squad ──
+  const squadAssignments = assignments.filter(a => a.squad === squadId);
+
+  // ── Unlinked estimates: estimates for this squad with no linked assignment ──
+  const linkedEstimateIds = new Set(assignments.filter(a => a.estimateId).map(a => a.estimateId));
+  const unlinkedEstimates = estimates.filter(e => e.squad === squadId && e.days > 0 && !linkedEstimateIds.has(e.id));
 
   let assignedHC = 0;
-  if (assignedRoles.length > 0) {
-    // Check if initiative overlaps this quarter (if dates exist)
+  if (squadAssignments.length > 0) {
     const range = _fcInitDateRange(init);
     let inRange = true;
     if (range) {
       if (range.start > quarter.end || range.end < quarter.start) inRange = false;
     }
     if (inRange) {
-      assignedRoles.forEach(r => {
-        const alloc = r.allocation != null ? r.allocation : 100;
+      squadAssignments.forEach(a => {
+        const alloc = a.allocation != null ? a.allocation : 100;
         assignedHC += alloc / 100;
       });
     }
   }
 
-  // ── Days-based path for unassigned roles ──
+  // ── Days-based path for unlinked estimates ──
   let unassignedHC = 0;
-  if (unassignedRoles.length > 0) {
+  if (unlinkedEstimates.length > 0) {
     const range = _fcInitDateRange(init);
     if (!range) {
-      // No dates → spread evenly across all 4 displayed quarters
-      const totalDays = unassignedRoles.reduce((a, r) => a + (r.days || 0), 0);
+      const totalDays = unlinkedEstimates.reduce((a, e) => a + (e.days || 0), 0);
       unassignedHC = qWorkingDays > 0 ? (totalDays / 4) / qWorkingDays : 0;
     } else {
       const oStart = new Date(Math.max(range.start.getTime(), quarter.start.getTime()));
@@ -151,18 +152,18 @@ function _fcDemand(init, squadId, quarter, qWorkingDays, initWDCache) {
         if (initWD > 0) {
           const overlapWD = _fcWorkingDays(oStart, oEnd);
           const proportion = overlapWD / initWD;
-          const totalDays = unassignedRoles.reduce((a, r) => a + (r.days || 0), 0);
+          const totalDays = unlinkedEstimates.reduce((a, e) => a + (e.days || 0), 0);
           unassignedHC = qWorkingDays > 0 ? (proportion * totalDays) / qWorkingDays : 0;
         }
       }
     }
   }
 
-  if (assignedRoles.length > 0 || unassignedRoles.length > 0) {
+  if (squadAssignments.length > 0 || unlinkedEstimates.length > 0) {
     return assignedHC + unassignedHC;
   }
 
-  // ── No estimatedRoles: legacy fallback ──
+  // ── No estimates/assignments: legacy fallback ──
   {
     // ── Legacy fallback: allocations / estimatedCapacity ──
     const range = _fcInitDateRange(init);
@@ -376,13 +377,14 @@ function openForecastDrilldown(tipId) {
     const badgeClass = type === 'committed' ? 'badge-green' : 'badge-blue';
     const badgeLabel = type === 'committed' ? 'Committed' : 'Pipeline';
 
-    // Break down by roles assigned to this squad
-    const roles = (item.init.estimatedRoles || []).filter(r => {
-      const sqId = tipId.split('_')[0]; // extract squadId
-      return r.squad === sqId && r.days > 0;
-    });
-    const roleDetail = roles.length > 0
-      ? `<div style="font-size:11px;color:var(--text-dim);margin-top:2px">${roles.map(r => r.role || 'Unnamed role').join(', ')}</div>`
+    // Break down by roles assigned to this squad (from both assignments and unlinked estimates)
+    const sqId = tipId.split('_')[0];
+    const asgRoles = (item.init.assignments || []).filter(r => r.squad === sqId);
+    const linkedIds = new Set(asgRoles.filter(a => a.estimateId).map(a => a.estimateId));
+    const estRoles = (item.init.estimates || []).filter(e => e.squad === sqId && e.days > 0 && !linkedIds.has(e.id));
+    const allRoles = [...asgRoles, ...estRoles];
+    const roleDetail = allRoles.length > 0
+      ? `<div style="font-size:11px;color:var(--text-dim);margin-top:2px">${allRoles.map(r => r.role || 'Unnamed role').join(', ')}</div>`
       : '';
 
     return `<tr>
