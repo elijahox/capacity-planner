@@ -311,14 +311,16 @@ function renderPortfolioExpanded(init) {
     <div style="overflow-x:auto">
       <table style="width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed">
         <colgroup>
-          <col style="width:160px">
+          <col style="width:150px">
           <col style="width:auto">
-          <col style="width:100px">
-          <col style="width:68px">
+          <col style="width:90px">
+          <col style="width:58px">
+          <col style="width:76px">
+          <col style="width:60px">
           <col style="width:82px">
-          <col style="width:150px">
-          <col style="width:150px">
-          <col style="width:46px">
+          <col style="width:120px">
+          <col style="width:130px">
+          <col style="width:42px">
           <col style="width:30px">
         </colgroup>
         <thead>
@@ -328,14 +330,16 @@ function renderPortfolioExpanded(init) {
             <th style="text-align:left;padding:6px 8px;font-weight:600;font-size:11px;color:var(--text-muted)">Type</th>
             <th style="text-align:left;padding:6px 8px;font-weight:600;font-size:11px;color:var(--text-muted)">Alloc</th>
             <th style="text-align:left;padding:6px 8px;font-weight:600;font-size:11px;color:var(--text-muted)">Day Rate</th>
+            <th style="text-align:left;padding:6px 8px;font-weight:600;font-size:11px;color:var(--text-muted)">Days</th>
+            <th style="text-align:left;padding:6px 8px;font-weight:600;font-size:11px;color:var(--text-muted)">Cost</th>
             <th style="text-align:left;padding:6px 8px;font-weight:600;font-size:11px;color:var(--text-muted)">Squad</th>
-            <th style="text-align:left;padding:6px 8px;font-weight:600;font-size:11px;color:var(--text-muted)">Fills&nbsp;Estimate</th>
+            <th style="text-align:left;padding:6px 8px;font-weight:600;font-size:11px;color:var(--text-muted)">Fills&nbsp;Est.</th>
             <th style="text-align:center;padding:6px 4px;font-weight:600;font-size:11px;color:var(--text-muted)">In&nbsp;$</th>
             <th></th>
           </tr>
         </thead>
         <tbody>
-          ${assignments.length === 0 ? `<tr><td colspan="9" style="padding:12px 8px;text-align:center;color:var(--text-dim);font-size:12px">No assignments yet</td></tr>` : ''}
+          ${assignments.length === 0 ? `<tr><td colspan="11" style="padding:12px 8px;text-align:center;color:var(--text-dim);font-size:12px">No assignments yet</td></tr>` : ''}
           ${assignments.map((asg, idx) => {
             const personObj = asg.personId ? people.find(p => p.id === asg.personId) : null;
             const homeSquadLabel = (() => {
@@ -362,6 +366,8 @@ function renderPortfolioExpanded(init) {
               <td style="padding:4px 8px;font-size:12px;color:var(--text-muted)">${typeLabel}${homeSquadLabel}</td>
               <td style="padding:4px 8px"><input type="number" value="${asg.allocation != null ? asg.allocation : 100}" min="0" max="100" placeholder="%" style="${numStyle}" onchange="updatePortfolioAssignment('${init.id}',${idx},'allocation',+this.value||0)"></td>
               <td style="padding:4px 8px"><input type="number" value="${asg.dayRate || ''}" min="0" style="${numStyle}" onchange="updatePortfolioAssignment('${init.id}',${idx},'dayRate',+this.value||0)"></td>
+              <td style="padding:4px 8px"><input type="number" value="${asg.days || ''}" min="0" style="${numStyle}" onchange="updatePortfolioAssignment('${init.id}',${idx},'days',+this.value||0)"></td>
+              <td style="padding:4px 8px;font-family:'JetBrains Mono',monospace;font-size:12px;text-align:right;color:var(--text-muted)">${asg.days && asg.dayRate ? fmtCurrency(asg.days * asg.dayRate) : '—'}</td>
               <td style="padding:4px 8px;font-size:12px;color:var(--text-muted)">${asg.squad ? (squads.find(s => s.id === asg.squad)?.name || asg.squad) : '—'}</td>
               <td style="padding:4px 8px"><select style="${inputStyle}" onchange="linkAssignmentToEstimate('${init.id}',${idx},this.value)">
                 <option value="">— No linked estimate —</option>
@@ -372,15 +378,23 @@ function renderPortfolioExpanded(init) {
             </tr>`;
           }).join('')}
         </tbody>
-        ${assignments.length > 0 ? `<tfoot>
+        ${assignments.length > 0 ? (() => {
+          const totalAlloc = assignments.reduce((a, asg) => a + (asg.allocation != null ? asg.allocation : 100), 0);
+          const totalDays = assignments.reduce((a, asg) => a + (asg.days || 0), 0);
+          const totalCost = assignments.reduce((a, asg) => a + (asg.days && asg.dayRate ? asg.days * asg.dayRate : 0), 0);
+          return `<tfoot>
           <tr style="border-top:2px solid var(--border);font-weight:600;font-size:12px">
             <td style="padding:6px 8px">Total</td>
             <td style="padding:6px 8px"></td>
             <td style="padding:6px 8px"></td>
-            <td style="padding:6px 8px;font-family:'JetBrains Mono',monospace;text-align:right">${assignments.reduce((a, asg) => a + (asg.allocation != null ? asg.allocation : 100), 0)}%</td>
-            <td colspan="5" style="padding:6px 8px;font-size:11px;color:var(--text-muted)">${assignments.length} assignment${assignments.length !== 1 ? 's' : ''} · ${totalAssignedHC.toFixed(1)} HC equiv</td>
+            <td style="padding:6px 8px;font-family:'JetBrains Mono',monospace;text-align:right">${totalAlloc}%</td>
+            <td style="padding:6px 8px"></td>
+            <td style="padding:6px 8px;font-family:'JetBrains Mono',monospace;text-align:right">${totalDays || ''}</td>
+            <td style="padding:6px 8px;font-family:'JetBrains Mono',monospace;text-align:right">${totalCost > 0 ? fmtCurrency(totalCost) : '—'}</td>
+            <td colspan="4" style="padding:6px 8px;font-size:11px;color:var(--text-muted)">${assignments.length} assignment${assignments.length !== 1 ? 's' : ''} · ${totalAssignedHC.toFixed(1)} HC equiv</td>
           </tr>
-        </tfoot>` : ''}
+        </tfoot>`;
+        })() : ''}
       </table>
     </div>
     <button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="addPortfolioAssignment('${init.id}')">+ Add Assignment</button>
