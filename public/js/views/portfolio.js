@@ -480,7 +480,7 @@ function assignPortfolioAssignmentPerson(initId, idx, personId) {
     if (person) {
       asg.role = person.role || '';
       asg.type = (person.type === 'msp' ? 'contractor' : person.type) || 'contractor';
-      asg.dayRate = person.dayRate || asg.dayRate;
+      asg.dayRate = person.dayRate || (person.type === 'perm' ? 750 : asg.dayRate);
       asg.squad = person.squad || '';
       asg.homeSquad = person.squad || null;
     }
