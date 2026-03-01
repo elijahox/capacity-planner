@@ -397,7 +397,10 @@ function renderPortfolioExpanded(init) {
         })() : ''}
       </table>
     </div>
-    <button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="addPortfolioAssignment('${init.id}')">+ Add Assignment</button>
+    <div style="display:flex;gap:8px;margin-top:8px;align-items:flex-start">
+      <button class="btn btn-secondary btn-sm" onclick="addPortfolioAssignment('${init.id}')">+ Add Assignment</button>
+      <button class="btn btn-secondary btn-sm" onclick="showAddSquadDropdown(event,'${init.id}')">+ Add Squad</button>
+    </div>
   </div>`;
 }
 
@@ -528,6 +531,93 @@ function removePortfolioAssignment(initId, idx) {
   const init = initiatives.find(i => i.id === initId);
   if (!init || !init.assignments) return;
   init.assignments.splice(idx, 1);
+  scheduleSave();
+  _portfolioFilterActive = true;
+  renderContent();
+}
+
+// ── Bulk add squad to assignments ────────────────────────────────
+
+function showAddSquadDropdown(event, initId) {
+  // Remove any existing dropdown
+  const existing = document.getElementById('add-squad-dropdown');
+  if (existing) existing.remove();
+
+  // Build dropdown HTML
+  const items = TRIBES.map(tribe => {
+    const tribeSquads = squads.filter(s => s.tribe === tribe.id);
+    if (tribeSquads.length === 0) return '';
+    return `<div style="padding:6px 12px;font-size:11px;font-weight:600;color:var(--text-muted);border-bottom:1px solid var(--border);background:var(--bg2)">${tribe.name}</div>` +
+      tribeSquads.map(sq => `<div style="padding:8px 12px;font-size:13px;cursor:pointer;border-bottom:1px solid var(--border)" onmouseenter="this.style.background='var(--bg2)'" onmouseleave="this.style.background=''" onclick="executeAddSquad('${initId}','${sq.id}')">${sq.name}</div>`).join('');
+  }).join('');
+
+  const dd = document.createElement('div');
+  dd.id = 'add-squad-dropdown';
+  dd.style.cssText = 'position:fixed;background:var(--bg);border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);z-index:9999;min-width:200px;max-height:300px;overflow-y:auto';
+  dd.innerHTML = items;
+
+  document.body.appendChild(dd);
+
+  // Position below the button
+  const btnRect = event.currentTarget.getBoundingClientRect();
+  dd.style.left = btnRect.left + 'px';
+  dd.style.top = (btnRect.bottom + 4) + 'px';
+
+  // If dropdown goes off-screen bottom, show above
+  const ddRect = dd.getBoundingClientRect();
+  if (ddRect.bottom > window.innerHeight) {
+    dd.style.top = (btnRect.top - ddRect.height - 4) + 'px';
+  }
+
+  // Close on outside click
+  const close = (e) => {
+    if (!dd.contains(e.target)) {
+      dd.remove();
+      document.removeEventListener('click', close);
+    }
+  };
+  setTimeout(() => document.addEventListener('click', close), 0);
+}
+
+function executeAddSquad(initId, squadId) {
+  const init = initiatives.find(i => i.id === initId);
+  if (!init) return;
+  if (!init.assignments) init.assignments = [];
+
+  const existingPersonIds = new Set(init.assignments.filter(a => a.personId).map(a => a.personId));
+
+  // Get active, non-vacant people in this squad (primary or secondary)
+  const squadPeople = people.filter(p =>
+    p.status === 'active' &&
+    !p.isVacant &&
+    (p.squad === squadId || p.secondarySquad === squadId) &&
+    !existingPersonIds.has(p.id)
+  );
+
+  // Close dropdown
+  const dd = document.getElementById('add-squad-dropdown');
+  if (dd) dd.remove();
+
+  if (squadPeople.length === 0) return;
+
+  squadPeople.forEach(p => {
+    const isSecondary = p.squad !== squadId && p.secondarySquad === squadId;
+    init.assignments.push({
+      id: 'asg-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5),
+      estimateId: null,
+      personId: p.id,
+      role: p.role || '',
+      type: (p.type === 'msp' ? 'contractor' : p.type) || 'contractor',
+      dayRate: p.dayRate || (p.type === 'perm' ? 750 : 0),
+      allocation: isSecondary ? 50 : 100,
+      days: null,
+      squad: p.squad || '',
+      homeSquad: p.squad || null,
+      inBudget: false,
+    });
+  });
+
+  _portfolioExpanded[initId] = true;
   scheduleSave();
   _portfolioFilterActive = true;
   renderContent();
