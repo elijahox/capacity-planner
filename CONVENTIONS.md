@@ -9,11 +9,12 @@
 
 ## Data Model
 - All state lives in a single object:
-  `{ squads, initiatives, people, initiativeDates, workProfiles }`
+  `{ squads, initiatives, people, initiativeDates, workProfiles, tribeLeadership, squadOrder, fy27PlannedHeadcount }`
 - Saved as one JSON blob in PostgreSQL under key `'state'`
 - Never split this into multiple DB tables without a migration plan
 - People array includes vacancy records (`isVacant: true`) — not a separate data structure
 - `secondarySquad` enables 50/50 split membership (counts 0.5 headcount each)
+- Initiatives have `estimates` (business case) and `assignments` (delivery reality) — legacy `allocations` still exists as fallback
 
 ## Rendering Pattern
 - Views are functions that return HTML strings

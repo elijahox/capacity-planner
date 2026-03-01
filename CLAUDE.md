@@ -46,7 +46,7 @@ capacity-planner/
 - **Portfolio** — initiative lifecycle management, role estimates, status transitions (submitted → approved → in_delivery → complete)
 - **Roadmap** — initiative timeline
 - **Demand** — work profiles + peak collision analysis
-- **Forecast** — quarterly Dev+QE capacity per squad, stacked bars (committed/pipeline/available), drill-down modal
+- **Forecast** — quarterly Dev+QE capacity per squad, Delivery/Pending modes, tier-coloured stacked bars, drill-down modal
 - **Financials** — cost tracking
 
 ## API Routes
@@ -80,8 +80,17 @@ All state is saved as a single JSON blob in PostgreSQL under key `'state'`.
 
 // initiatives
 { id, name, tier (1/2/3), status, owner,
-  allocations: { squadId: pct },          // drives utilisation calculations
-  estimatedCapacity: { squadId: pct },    // pre-approval planning only
+  allocations: { squadId: pct },          // legacy — squad-level % (being phased out)
+  estimatedCapacity: { squadId: pct },    // legacy — pre-approval planning only
+  estimates: [                            // business case role line items
+    { id, role, type ('perm'|'contractor'),
+      days, dayRate, budget, squad }
+  ],
+  assignments: [                          // actual delivery assignments
+    { id, estimateId, personId, role, type,
+      allocation (%), dayRate, squad,
+      homeSquad, inBudget }               // homeSquad = org chart squad if different
+  ],
   budget,                                 // number (dollars) or null
   estimatedHeadcount,                     // number or null
   expectedStart,                          // 'YYYY-MM-DD' or null
@@ -108,8 +117,11 @@ All state is saved as a single JSON blob in PostgreSQL under key `'state'`.
 
 ## Capacity Logic
 - **Actual headcount** = dynamic count from people array (excludes `isVacant`, counts `secondarySquad` as 0.5)
-- **Committed headcount** = `(totalAllocationPct / 100) * squad.size`
-- **RAG status**: Green = fully staffed, Amber = 1–2 people short, Red = 3+ short or over-allocated
+- **Committed headcount** (legacy) = `(totalAllocationPct / 100) * squad.size` — from `allocations`
+- **Dev+QE delivery headcount** = count of active, non-vacant engineering + QE people in squad (via `getSquadAvailableCapacity()`)
+- **Assigned headcount** = sum of assignment allocations for each Dev+QE person in the squad
+- **Utilisation %** = `(assignedHeadcount / deliveryHeadcount) * 100`
+- **RAG status** (org chart): Red = >90% utilisation, Amber = >70%, Green = ≤70%
 - **Discipline counts**:
   - 💻 Dev = engineers, tech leads, lead engineers
   - 🔍 QE = quality engineers
@@ -130,7 +142,7 @@ All state is saved as a single JSON blob in PostgreSQL under key `'state'`.
 
 **Org chart** — two-tier visual: tribe header nodes (coloured by tribe) across the top, squad columns below. Person cards are draggable (HTML5 API) between squads. Squad names are double-click renameable. New squads can be added per tribe. Supports leadership slots (4 per tribe), vacancy cards, discipline counts (Dev/QE), and explicit card ordering via `squadOrder`.
 
-**Pipeline** — tracks initiatives through status stages: `submitted` → `approved` → `in_delivery` → `complete`. Each initiative carries `estimatedCapacity` (pre-approval planning) separate from `allocations` (feeds utilisation). On activation, `estimatedCapacity` is copied into `allocations`.
+**Portfolio lifecycle** — tracks initiatives through status stages: `submitted` → `approved` → `in_delivery` → `complete`. Each initiative has `estimates` (business case role line items: role, days, dayRate, budget, squad) and `assignments` (named people linked to estimates: personId, allocation %, homeSquad). Estimates are the planning layer; assignments are the delivery reality. Assignments reduce the assigned person's home squad capacity. Legacy `allocations`/`estimatedCapacity` fields still exist as fallback but are being phased out.
 
 **Commitment Heat Map** — tab within the Squads view. Rows = squads grouped by tribe, columns = next 12 months. Committed % from `approved`/`in_delivery` initiatives; pending % from `submitted` initiatives. Colour-coded cells; dashed amber border for pending demand.
 
@@ -188,6 +200,13 @@ git add . && git commit -m "type: description" && git push
 - `parseCsvDayRate(str)` — strips `$`, commas, spaces → float or `null`
 - `parseCsvType(str)` → `'perm'` | `'contractor'` | `'msp'`
 - `matchSquadByName(name)` — exact-then-partial match against `squads` array → `squadId` or `null`
+
+**Capacity helpers** (all in `utils.js`):
+- `DISCIPLINE_MAP` — maps roles to disciplines: `engineering`, `qe`, `product`, `delivery`
+- `getDiscipline(role)` → discipline string (case-insensitive substring match)
+- `getSquadDisciplineCounts(squadId)` → `{ engineering, qe, product, delivery, other }` (respects 0.5 split)
+- `getPersonAssignments(personId)` → `{ totalAllocated, remaining, assignments: [{ initiativeId, initName, allocation }] }`
+- `getSquadAvailableCapacity(squadId)` → `{ squadId, deliveryHeadcount, allocatedHeadcount, availableHeadcount, utilisationPct, people: [...] }` — the primary capacity calculation for Dev+QE
 
 **CSS** — all styles are inline in `index.html` `<style>` block. CSS variables defined in `:root`.
 
