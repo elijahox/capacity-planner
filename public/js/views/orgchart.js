@@ -249,9 +249,10 @@ function orgChartClearLeaderSlot(event, tribeId, slotIdx) {
 // ── Squad column ──────────────────────────────────────────────
 function renderOrgSquadCol(sq, tribe, minW) {
   const hc = getEffectiveSquadSize(sq.id);
-  const { total: util } = getSquadAllocation(sq.id);
+  const cap = getSquadAvailableCapacity(sq.id);
+  const utilPct = cap.utilisationPct;
   const committed = getCommittedHeadcount(sq.id);
-  const rag = getSquadRAG(sq.id);
+  const rag = utilPct > 90 ? 'red' : utilPct > 70 ? 'amber' : 'green';
   const disc = getSquadDisciplineCounts(sq.id);
   const c = tribe.color;
 
@@ -313,17 +314,10 @@ function renderOrgSquadCol(sq, tribe, minW) {
                   title="Delete squad">🗑</button>
         </div>
         <div style="font-size:12px;color:var(--text-muted);line-height:1.3;margin-top:2px">
-          <div style="display:flex;justify-content:space-between;align-items:center">${hc.toFixed(1)}p actual ${ragPill(rag, util)}</div>
+          <div style="display:flex;justify-content:space-between;align-items:center">${hc.toFixed(1)}p actual ${ragPill(rag, utilPct)}</div>
           <div>${committed.toFixed(1)}p committed</div>
           <div style="font-size:11px;margin-top:1px">💻 <span${disc.engineering === 0 ? ' style="color:var(--red)"' : ''}>${disc.engineering.toFixed(1)}p</span> dev  🔍 <span${disc.qe === 0 ? ' style="color:var(--red)"' : ''}>${disc.qe.toFixed(1)}p</span> QE</div>
-          ${(() => {
-            const cap = getSquadAvailableCapacity(sq.id);
-            if (cap.deliveryHeadcount > 0) {
-              const col = cap.utilisationPct > 100 ? 'var(--red)' : cap.utilisationPct > 85 ? 'var(--green)' : 'var(--text-muted)';
-              return `<div style="font-size:10px;margin-top:2px;color:${col};font-family:'JetBrains Mono',monospace">${cap.allocatedHeadcount.toFixed(1)} / ${cap.deliveryHeadcount.toFixed(1)} Dev+QE assigned · ${cap.availableHeadcount.toFixed(1)} avail</div>`;
-            }
-            return '';
-          })()}
+          ${cap.deliveryHeadcount > 0 ? `<div style="font-size:10px;margin-top:2px;color:${utilPct > 100 ? 'var(--red)' : utilPct > 85 ? 'var(--green)' : 'var(--text-muted)'};font-family:'JetBrains Mono',monospace">${cap.allocatedHeadcount.toFixed(1)} / ${cap.deliveryHeadcount.toFixed(1)} Dev+QE assigned · ${cap.availableHeadcount.toFixed(1)} avail</div>` : ''}
           ${(() => { const vac = getSquadVacancies(sq.id); return vac.total > 0 ? `<div style="font-size:10px;color:var(--text-muted);margin-top:2px">${vac.total} vacant (${vac.approved} approved, ${vac.pending} pending)</div>` : ''; })()}
         </div>
       </div>
