@@ -332,10 +332,7 @@ function renderPortfolioExpanded(init) {
               <td style="padding:4px 8px;font-size:12px;color:var(--text-muted)">${typeLabel}${homeSquadLabel}</td>
               <td style="padding:4px 8px"><input type="number" value="${asg.allocation != null ? asg.allocation : 100}" min="0" max="100" placeholder="%" style="${numStyle}" onchange="updatePortfolioAssignment('${init.id}',${idx},'allocation',+this.value||0)"></td>
               <td style="padding:4px 8px"><input type="number" value="${asg.dayRate || ''}" min="0" style="${numStyle}" onchange="updatePortfolioAssignment('${init.id}',${idx},'dayRate',+this.value||0)"></td>
-              <td style="padding:4px 8px"><select style="${inputStyle}" onchange="updatePortfolioAssignment('${init.id}',${idx},'squad',this.value)">
-                <option value="">— None —</option>
-                ${squadOpts.replace(new RegExp(`value="${asg.squad}"`), `value="${asg.squad}" selected`)}
-              </select></td>
+              <td style="padding:4px 8px;font-size:12px;color:var(--text-muted)">${asg.squad ? (squads.find(s => s.id === asg.squad)?.name || asg.squad) : '—'}</td>
               <td style="padding:4px 8px"><select style="${inputStyle}" onchange="linkAssignmentToEstimate('${init.id}',${idx},this.value)">
                 <option value="">— No linked estimate —</option>
                 ${estimateOpts}
@@ -454,9 +451,11 @@ function assignPortfolioAssignmentPerson(initId, idx, personId) {
       asg.role = person.role || '';
       asg.type = (person.type === 'msp' ? 'contractor' : person.type) || 'contractor';
       asg.dayRate = person.dayRate || asg.dayRate;
+      asg.squad = person.squad || '';
       asg.homeSquad = person.squad || null;
     }
   } else {
+    asg.squad = '';
     asg.homeSquad = null;
   }
   scheduleSave();
